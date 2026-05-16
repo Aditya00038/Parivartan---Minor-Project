@@ -11,16 +11,22 @@ const runtimeProjectId =
   process.env.GCLOUD_PROJECT ||
   firebaseConfig.projectId;
 
-// This is a temporary solution for service account credentials.
-// In a real production environment, you should use environment variables
-// or another secure method to store these credentials.
+// Normalize the private key: replace literal \n with real newlines and strip
+// surrounding quotes that some env-var editors add.
+function parsePrivateKey(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  return raw.replace(/\\n/g, '\n').replace(/^["']|["']$/g, '').trim();
+}
+
+const rawPrivateKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+  ? undefined // handled below via JSON.parse
+  : parsePrivateKey(process.env.FIREBASE_PRIVATE_KEY);
+
 const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
   : {
       projectId: runtimeProjectId,
-      // You would typically not hard-code a private key.
-      // This is a placeholder.
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      privateKey: rawPrivateKey,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     };
 
@@ -31,11 +37,17 @@ const hasPlaceholderCredentials =
   String(serviceAccount.privateKey || '').includes('YOUR_PRIVATE_KEY_HERE') ||
   String(serviceAccount.projectId || '').includes('your-project');
 
+// A real PEM key starts with -----BEGIN and must be at least 100 chars.
+const isValidPem =
+  typeof serviceAccount.privateKey === 'string' &&
+  serviceAccount.privateKey.trim().startsWith('-----BEGIN') &&
+  serviceAccount.privateKey.length > 100;
+
 if (!getApps().length) {
   const hasExplicitCredentials =
     !!serviceAccount.projectId &&
     !!serviceAccount.clientEmail &&
-    !!serviceAccount.privateKey &&
+    isValidPem &&
     !hasPlaceholderCredentials;
 
   if (!hasExplicitCredentials && process.env.NODE_ENV !== 'production') {
@@ -56,6 +68,8 @@ if (!getApps().length) {
       : {
           projectId: runtimeProjectId,
           // Fall back to the hosting/runtime identity when explicit credentials are not set.
+          // On Vercel without credentials, Admin SDK features won't work at runtime
+          // but the build will succeed.
         }
   );
 } else {
