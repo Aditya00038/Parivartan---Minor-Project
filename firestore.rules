@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function hasRole(roles) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in roles;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow create: if isAuth();
+      // Own profile updates (FCM tokens, points, preferences)
+      allow update: if isOwner(userId) ||
+                       hasRole(['admin', 'official', 'department_head']);
+      allow delete: if hasRole(['admin']);
+    }
+
+    // ── Reports ───────────────────────────────────────────────────────
+    // NOTE: allow list (collection read) for all authenticated users so
+    // the citizen/worker/SMC dashboards can query without permission errors.
+    match /reports/{reportId} {
+      allow read, list: if isAuth();
+      allow create: if isAuth();
+      // Owners update their own (rating/feedback); officials/workers update any
+      allow update: if isAuth() && (
+        isOwner(resource.data.userId) ||
+        hasRole(['official', 'department_head', 'admin', 'worker'])
+      );
+      allow delete: if hasRole(['admin', 'official']);
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      allow read, list: if true;  // public broadcast feed
+      allow create: if hasRole(['official', 'department_head', 'admin']);
+      allow update: if isAuth() && (
+        hasRole(['official', 'department_head', 'admin']) ||
+        resource.data.userId == request.auth.uid
+      );
+      allow delete: if hasRole(['official', 'department_head', 'admin']);
+    }
+
+    // ── Departments ───────────────────────────────────────────────────
+    match /departments/{deptId} {
+      allow read, list: if true;
+      allow write: if hasRole(['admin', 'official']);
+    }
+
+    // ── Settings ──────────────────────────────────────────────────────
+    match /settings/{settingId} {
+      allow read, list: if true;
+      allow write: if hasRole(['admin']);
+    }
+
+    // ── Leaderboard (derived) ─────────────────────────────────────────
+    // The leaderboard is computed client-side from users collection.
+    // No separate collection needed.
+
+    // ── Catch-all ─────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, list: if isAuth();
+      allow write: if isAuth();
+    }
+  }
+}

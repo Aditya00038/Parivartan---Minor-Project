@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the system, whether a citizen, worker, or administrator.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
+        },
+        "role": {
+          "type": "string",
+          "description": "The type of user (citizen, official, worker)."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The display name of the user."
+        },
+        "points": {
+          "type": "number",
+          "description": "Gamification points earned by the user."
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "email",
+        "name",
+        "points"
+      ]
+    },
+    "Report": {
+      "title": "Report",
+      "type": "object",
+      "description": "Represents a road damage report submitted by a citizen.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who submitted the report."
+        },
+        "userName": {
+          "type": "string",
+          "description": "The name of the user who submitted the report."
+        },
+        "location": {
+          "type": "string",
+          "description": "Geo-tagged location of the reported damage (e.g., latitude, longitude)."
+        },
+        "latitude": {
+            "type": "number",
+            "description": "The latitude of the reported damage."
+        },
+        "longitude": {
+            "type": "number",
+            "description": "The longitude of the reported damage."
+        },
+        "roadName": {
+            "type": "string",
+            "description": "The name of the road where the damage is located, extracted from reverse geocoding."
+        },
+        "category": {
+            "type": "string",
+            "description": "The type of damage reported (e.g., Pothole, Crack)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the road damage."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the uploaded image of the road damage.",
+          "format": "uri"
+        },
+        "imageHint": {
+            "type": "string",
+            "description": "Hint for AI image search"
+        },
+        "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the report was created"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the report (e.g., Pending, In Progress, Resolved, Rejected)."
+        },
+        "aiAnalysis": {
+            "type": "object",
+            "description": "The AI analysis of the report"
+        },
+        "department": {
+          "type": "string",
+          "description": "The department responsible for addressing the report."
+        },
+        "remarks": {
+          "type": "string",
+          "description": "Remarks or notes added by an SMC officer during verification."
+        },
+        "causeTag": {
+          "type": "string",
+          "description": "The likely cause of the damage (e.g., Rain/Flood, Construction)."
+        },
+        "assignedContractor": {
+            "type": "string",
+            "description": "The name of the contractor assigned to the report."
+        },
+        "priority": {
+            "type": "string",
+            "description": "The priority level of the report.",
+            "enum": ["Low", "Medium", "High", "Critical"]
+        },
+        "estimatedResolutionTime": {
+            "type": "string",
+            "description": "The estimated time for resolution suggested by an official."
+        },
+        "afterImageUrl": {
+            "type": "string",
+            "description": "URL of the uploaded image showing the completed work.",
+            "format": "uri"
+        },
+        "actionLog": {
+            "type": "array",
+            "description": "A log of all actions taken on the report.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string" },
+                "timestamp": { "type": "string", "format": "date-time" },
+                "actor": { "type": "string" },
+                "actorName": { "type": "string" },
+                "notes": { "type": "string" }
+              },
+              "required": ["status", "timestamp", "actor", "actorName"]
+            }
+        },
+        "citizenRating": {
+            "type": "number",
+            "description": "The 1-5 star rating given by the citizen after resolution."
+        }
+      },
+      "required": [
+        "userId",
+        "userName",
+        "location",
+        "description",
+        "imageUrl",
+        "timestamp",
+        "status",
+        "department",
+        "category"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "google"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Stores user profiles. Path-based ownership for user data."
+    },
+    "/reports/{reportId}": {
+      "schema": {
+        "$ref": "#/entities/Report"
+      },
+      "description": "Stores road damage reports. Includes denormalized 'userName' for display and 'userId' for authorization."
+    }
+  }
+}
