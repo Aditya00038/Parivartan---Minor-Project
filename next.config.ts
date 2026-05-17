@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Stub the optional @opentelemetry/exporter-jaeger dep that
+  // @opentelemetry/sdk-node tries to require but is never installed.
+  // Without this the Vercel build fails with "Module not found".
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@opentelemetry/exporter-jaeger': false,
+      };
+    }
+    return config;
+  },
   // Disable service worker
   headers: async () => [
     {
