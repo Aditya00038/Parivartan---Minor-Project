@@ -1,4 +1,4 @@
-import { Bell, BarChart, FilePlus, HandHeart, HardHat, LayoutDashboard, List, Map, MessageSquare, Settings, Trophy, User, UserCheck } from 'lucide-react';
+import { Bell, BarChart, FilePlus, HandHeart, HardHat, LayoutDashboard, List, Map, MapPin, MessageSquare, Settings, Trophy, User, UserCheck } from 'lucide-react';
 
 export type NavItem = {
   href: string;
@@ -22,6 +22,7 @@ export const smcNavItems: NavItem[] = [
   { href: '/smc/contracts', label: 'Contractors', icon: <UserCheck /> },
   { href: '/smc/wards', label: 'Wards', icon: <Map /> },
   { href: '/smc/analytics', label: 'Analytics', icon: <BarChart /> },
+  { href: '/smc/civic-services', label: 'Civic Services', icon: <MapPin /> },
   { href: '/smc/notifications', label: 'Alerts', icon: <Bell /> },
   { href: '/smc/settings', label: 'Settings', icon: <Settings /> },
 ];

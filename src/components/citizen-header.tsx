@@ -19,7 +19,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import LanguageSelector from '@/components/translation/language-selector';
 import { isNotificationActive } from '@/lib/notification-utils';
 
 export default function CitizenHeader() {
@@ -135,8 +134,6 @@ export default function CitizenHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <LanguageSelector className="hidden sm:inline-flex" />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full relative hover:bg-gray-100 dark:hover:bg-slate-800">
@@ -189,7 +186,6 @@ export default function CitizenHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <LanguageSelector className="sm:hidden" />
         </div>
       </div>
     </header>

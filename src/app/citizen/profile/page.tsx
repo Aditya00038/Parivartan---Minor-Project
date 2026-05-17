@@ -1,4 +1,5 @@
 'use client';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -18,11 +19,12 @@ import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { User as UserType } from '@/lib/types';
 import { NotificationToggleRow } from '@/components/push-notification-prompt';
+import LanguageSelector from '@/components/translation/language-selector';
+import { Star, ShieldCheck, Globe, Bell, Mail, User as UserIcon } from 'lucide-react';
 
 const profileSchema = z.object({
-    displayName: z.string().min(2, "Name must be at least 2 characters."),
+  displayName: z.string().min(2, 'Name must be at least 2 characters.'),
 });
-
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
@@ -40,37 +42,25 @@ export default function ProfilePage() {
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-        displayName: '',
-    }
+    defaultValues: { displayName: '' },
   });
 
   useEffect(() => {
-      if (userProfile) {
-          form.reset({
-              displayName: userProfile.name ?? user?.displayName ?? ''
-          });
-      }
+    if (userProfile) {
+      form.reset({ displayName: userProfile.name ?? user?.displayName ?? '' });
+    }
   }, [userProfile, user, form]);
 
   async function onSubmit(values: ProfileForm) {
     if (!userDocRef) return;
     setIsUpdating(true);
     try {
-        await updateDoc(userDocRef, { name: values.displayName });
-        toast({
-            title: "Profile Updated",
-            description: "Your display name has been successfully changed."
-        });
-    } catch(error) {
-        console.error("Profile update failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: "Could not update your profile. Please try again."
-        });
+      await updateDoc(userDocRef, { name: values.displayName });
+      toast({ title: 'Profile Updated', description: 'Your display name has been changed.' });
+    } catch {
+      toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update your profile.' });
     } finally {
-        setIsUpdating(false);
+      setIsUpdating(false);
     }
   }
 
@@ -78,133 +68,209 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <Skeleton className="h-24 w-full" />
-            <div className="grid gap-8 md:grid-cols-4">
-                <div className="md:col-span-1"><Skeleton className="h-64 w-full" /></div>
-                <div className="md:col-span-3"><Skeleton className="h-96 w-full" /></div>
-            </div>
+      <div className="p-4 space-y-4">
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <div className="grid gap-4 md:grid-cols-4">
+          <Skeleton className="h-48 w-full rounded-2xl md:col-span-1" />
+          <Skeleton className="h-80 w-full rounded-2xl md:col-span-3" />
         </div>
-    )
+      </div>
+    );
   }
 
   if (!user) {
     return (
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-            <Card className="text-center p-8">
-                <CardTitle>Please log in</CardTitle>
-                <CardDescription>You need to be logged in to view your profile.</CardDescription>
-            </Card>
-        </div>
-    )
+      <div className="p-4">
+        <Card className="text-center p-8">
+          <CardTitle>Please log in</CardTitle>
+          <CardDescription>You need to be logged in to view your profile.</CardDescription>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-       <div className="bg-gradient-to-r from-primary to-accent text-white p-6 md:p-8 rounded-lg shadow-lg mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 text-primary-foreground">Profile & Settings</h1>
-        <p className="text-base md:text-lg text-primary-foreground/80">Manage Your Civic Identity</p>
+    <div className="flex-1 p-4 pb-8 space-y-4">
+
+      {/* ── Page header ── */}
+      <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white shadow-md">
+        <p className="text-xs font-medium text-white/50 uppercase tracking-widest mb-1">Account</p>
+        <h1 className="text-xl font-bold tracking-tight">Profile &amp; Settings</h1>
+        <p className="text-sm text-white/60 mt-0.5">Manage your civic identity</p>
       </div>
-      
-      <div className="grid gap-8 md:grid-cols-4">
+
+      <div className="grid gap-4 md:grid-cols-4">
+
+        {/* ── Sidebar card ── */}
         <div className="md:col-span-1">
-          <Card>
-            <CardContent className="pt-6 flex flex-col items-center text-center">
-              <Avatar className="h-20 w-20 md:h-24 md:w-24 mb-4">
+          <Card className="border border-slate-100 shadow-none">
+            <CardContent className="pt-6 flex flex-col items-center text-center gap-1">
+              <Avatar className="h-20 w-20 ring-2 ring-emerald-100 ring-offset-2 mb-2">
                 <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                <AvatarFallback>{userProfile?.name?.charAt(0).toUpperCase() ?? 'U'}</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-xl font-bold">
+                  {userProfile?.name?.charAt(0).toUpperCase() ?? 'U'}
+                </AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-bold">{userProfile?.name ?? user.displayName}</h2>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              <Separator className="my-4" />
-              <div className="text-center">
-                <p className="text-2xl font-bold">{userProfile?.points ?? 0}</p>
-                <p className="text-sm text-muted-foreground">Total Points</p>
+              <h2 className="text-base font-bold leading-tight">{userProfile?.name ?? user.displayName}</h2>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <Separator className="my-3 w-full" />
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 w-full justify-center">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <div>
+                  <p className="text-lg font-bold leading-none text-amber-700">{userProfile?.points ?? 0}</p>
+                  <p className="text-[10px] text-amber-600 font-medium">Total Points</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* ── Tabs ── */}
         <div className="md:col-span-3">
           <Tabs defaultValue="profile" className="w-full">
-            <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-              <TabsList className="inline-flex w-max md:grid md:w-full md:grid-cols-3 mb-4">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-            </div>
+            <TabsList className="w-full grid grid-cols-3 mb-4 h-10 rounded-xl bg-slate-100 p-1">
+              <TabsTrigger value="profile" className="rounded-lg text-xs font-medium">Profile</TabsTrigger>
+              <TabsTrigger value="security" className="rounded-lg text-xs font-medium">Security</TabsTrigger>
+              <TabsTrigger value="settings" className="rounded-lg text-xs font-medium">Settings</TabsTrigger>
+            </TabsList>
 
+            {/* Profile tab */}
             <TabsContent value="profile">
-              <Card>
-                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <CardHeader>
-                        <CardTitle>Public Profile</CardTitle>
-                        <CardDescription>This is how others will see you on the site.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <FormField
-                                control={form.control}
-                                name="displayName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>Display Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Your display name" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input id="email" defaultValue={user.email ?? ''} disabled />
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button type="submit" disabled={isUpdating}>{isUpdating ? "Saving..." : "Update Profile"}</Button>
-                        </CardFooter>
-                    </form>
+              <Card className="border border-slate-100 shadow-none">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                          <UserIcon className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-sm">Public Profile</CardTitle>
+                          <CardDescription className="text-xs">How others see you on the platform.</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="displayName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-medium">Display Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Your display name" className="h-10 rounded-xl" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-xs font-medium">Email Address</Label>
+                        <Input
+                          id="email"
+                          defaultValue={user.email ?? ''}
+                          disabled
+                          className="h-10 rounded-xl bg-slate-50 text-muted-foreground"
+                        />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="pt-2">
+                      <Button
+                        type="submit"
+                        disabled={isUpdating}
+                        className="rounded-xl h-9 px-5 text-sm font-medium"
+                      >
+                        {isUpdating ? 'Saving…' : 'Save Changes'}
+                      </Button>
+                    </CardFooter>
+                  </form>
                 </Form>
               </Card>
             </TabsContent>
 
+            {/* Security tab */}
             <TabsContent value="security">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Security</CardTitle>
-                  <CardDescription>Account security settings.</CardDescription>
+              <Card className="border border-slate-100 shadow-none">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center">
+                      <ShieldCheck className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm">Security</CardTitle>
+                      <CardDescription className="text-xs">Account security settings.</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                   <p className="text-sm text-muted-foreground p-4 border rounded-lg">
-                       You are logged in with Google. Your account security is managed by your Google account.
+                <CardContent>
+                  <div className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <ShieldCheck className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      You are signed in with Google. Your account security is managed by your Google account.
                     </p>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
-            
-            <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notifications</CardTitle>
-                  <CardDescription>Manage how you receive notifications.</CardDescription>
+
+            {/* Settings tab */}
+            <TabsContent value="settings" className="space-y-3">
+
+              {/* Notifications card */}
+              <Card className="border border-slate-100 shadow-none">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Bell className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm">Notifications</CardTitle>
+                      <CardDescription className="text-xs">Manage how you receive updates.</CardDescription>
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
-                    <Label htmlFor="email-notifications" className="flex flex-col space-y-1">
-                      <span>Email Notifications</span>
-                      <span className="font-normal leading-snug text-muted-foreground">
-                        Receive updates about your reports via email.
-                      </span>
-                    </Label>
+                <CardContent className="space-y-3">
+                  <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center">
+                        <Mail className="h-4 w-4 text-slate-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Email Notifications</p>
+                        <p className="text-xs text-muted-foreground">Updates about your reports via email.</p>
+                      </div>
+                    </div>
                     <Switch id="email-notifications" defaultChecked />
                   </div>
                   <NotificationToggleRow />
                 </CardContent>
               </Card>
-            </TabsContent>
 
+              {/* Language card */}
+              <Card className="border border-slate-100 shadow-none">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-sky-50 flex items-center justify-center">
+                      <Globe className="h-4 w-4 text-sky-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm">Language</CardTitle>
+                      <CardDescription className="text-xs">Choose your preferred display language.</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+                    <div>
+                      <p className="text-sm font-medium">App Language</p>
+                      <p className="text-xs text-muted-foreground">Translate the app into your language.</p>
+                    </div>
+                    <LanguageSelector />
+                  </div>
+                </CardContent>
+              </Card>
+
+            </TabsContent>
           </Tabs>
         </div>
       </div>

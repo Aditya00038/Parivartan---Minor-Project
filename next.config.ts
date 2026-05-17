@@ -1,4 +1,4 @@
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Disable React Strict Mode — it double-invokes effects which causes
@@ -9,13 +9,6 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  // @opentelemetry/exporter-jaeger is an optional peer dep of
-  // @opentelemetry/sdk-node (used by @genkit-ai/core) that is never installed.
-  // Tell webpack to stub it out so the build doesn't fail.
-  webpack: (config) => {
-    config.resolve.alias['@opentelemetry/exporter-jaeger'] = false;
-    return config;
   },
   // Disable service worker
   headers: async () => [

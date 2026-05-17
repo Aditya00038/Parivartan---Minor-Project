@@ -1,5 +1,28 @@
 // Type definitions for the Parivartan platform
 
+// ─── Civic Service Registration ───────────────────────────────────────────────
+
+export type CivicServiceCategory = 'garbage' | 'police' | 'hospital' | 'fire' | 'toilet' | 'municipal';
+
+export type CivicServiceStatus = 'pending' | 'approved' | 'rejected';
+
+export type CivicService = {
+  id: string;
+  category: CivicServiceCategory;
+  name: string;
+  location: string;          // reverse-geocoded address
+  latitude: number;
+  longitude: number;
+  imageUrl: string;          // base64 data URL (same pattern as reports)
+  status: CivicServiceStatus;
+  submittedBy: string;       // user uid
+  submittedByName: string;
+  submittedAt: string;       // ISO timestamp
+  reviewedBy?: string;       // admin uid
+  reviewedAt?: string;
+  rejectionReason?: string;
+};
+
 // Department type for hierarchical workflow
 export type Department = {
   id: string;

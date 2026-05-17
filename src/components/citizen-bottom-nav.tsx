@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Home, FileText, Plus, Trophy, Bell } from 'lucide-react';
+import { Home, FileText, Plus, Trophy, MessageCircle } from 'lucide-react';
 
 const bottomNavItems = [
-  { href: '/citizen/dashboard',       label: 'Home',      icon: Home     },
-  { href: '/citizen/my-complaints',   label: 'Reports',   icon: FileText },
+  { href: '/citizen/dashboard',       label: 'Home',      icon: Home          },
+  { href: '/citizen/my-complaints',   label: 'Reports',   icon: FileText      },
   { href: '/citizen/report',          label: 'Report',    icon: Plus,    accent: true },
-  { href: '/citizen/leaderboard',     label: 'Ranks',     icon: Trophy   },
-  { href: '/citizen/notifications',   label: 'Alerts',    icon: Bell     },
+  { href: '/citizen/leaderboard',     label: 'Ranks',     icon: Trophy        },
+  { href: '/citizen/chatbot',         label: 'Chat',      icon: MessageCircle },
 ];
 
 export default function CitizenBottomNav() {

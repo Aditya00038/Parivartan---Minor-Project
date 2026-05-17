@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2, Leaf, Mail, Lock, User, Phone, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Leaf, Mail, Lock, User, Phone, LogIn, UserPlus, ArrowRight, Camera, MapPin, Bell, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
@@ -80,7 +80,7 @@ export default function CitizenLoginPage() {
         id: cred.user.uid, name: regName, email: regEmail, phoneNumber: regPhone,
         role: 'citizen', points: 0, createdAt: new Date().toISOString(),
       });
-      toast({ title: '🎉 Account created!', description: 'Welcome to Parivartan.' });
+      toast({ title: 'Account created', description: 'Welcome to Parivartan.' });
       router.push('/citizen/dashboard');
     } catch (err: any) {
       toast({ title: 'Registration failed', description: err.code === 'auth/email-already-in-use' ? 'Email already registered.' : err.message, variant: 'destructive' });
@@ -102,17 +102,17 @@ export default function CitizenLoginPage() {
         </div>
         <h2 className="text-2xl font-bold mb-4">Report civic issues,<br />track their resolution.</h2>
         <p className="text-emerald-200 text-sm leading-relaxed mb-8">
-          Parivartan connects Pune citizens with the Municipal Corporation. Submit photo-evidenced reports, track them in real-time, and earn rewards for contributing to a better city.
+          Parivartan connects Pune citizens with the Municipal Corporation. Submit photo-evidenced reports, track them in real-time, and compete on the leaderboard for contributing to a better city.
         </p>
         <div className="grid grid-cols-2 gap-4 w-full">
           {[
-            { emoji: '📸', label: 'AI-powered photo analysis' },
-            { emoji: '📍', label: 'GPS-tagged reports' },
-            { emoji: '🔔', label: 'Real-time push updates' },
-            { emoji: '🏆', label: 'Rewards & leaderboard' },
+            { icon: Camera,   label: 'AI-powered photo analysis' },
+            { icon: MapPin,   label: 'GPS-tagged reports'        },
+            { icon: Bell,     label: 'Real-time push updates'    },
+            { icon: Trophy,   label: 'Leaderboard'               },
           ].map(f => (
             <div key={f.label} className="flex items-center gap-2 bg-white/10 rounded-xl p-3 text-sm">
-              <span className="text-xl">{f.emoji}</span>
+              <f.icon className="h-4 w-4 text-emerald-200 shrink-0" />
               <span className="text-emerald-100">{f.label}</span>
             </div>
           ))}

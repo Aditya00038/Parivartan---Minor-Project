@@ -410,19 +410,19 @@ export default function ReportProblemPage() {
       // Success messages based on automation level
       if (workflow.autoAssign) {
         toast({
-          title: '✅ Report Auto-Assigned!',
+          title: 'Report Auto-Assigned',
           description: `Automatically assigned to ${workflow.suggestedDepartment} department. Priority: ${workflow.suggestedPriority}`,
           duration: 5000,
         });
       } else if (workflow.requiresVerification) {
         toast({
-          title: '📋 Report Under Review',
-          description: 'Your report is being verified by our team. You\'ll be notified of updates.',
+          title: 'Report Under Review',
+          description: "Your report is being verified by our team. You'll be notified of updates.",
           duration: 5000,
         });
       } else {
         toast({
-          title: '✅ Report Submitted Successfully!',
+          title: 'Report Submitted',
           description: 'Thank you for helping improve our roads!',
         });
       }
@@ -622,7 +622,7 @@ export default function ReportProblemPage() {
                     <AlertTriangle className={`mt-0.5 h-5 w-5 shrink-0 ${isDuplicate ? 'text-red-500' : 'text-yellow-500'}`} />
                     <div className="flex-1">
                       <p className={`text-sm font-semibold ${isDuplicate ? 'text-red-700' : 'text-yellow-700'}`}>
-                        {isDuplicate ? '🔴 Likely duplicate report detected' : '🟡 Similar complaint nearby'}
+                        {isDuplicate ? 'Likely duplicate report detected' : 'Similar complaint nearby'}
                       </p>
                       <p className={`text-xs mt-0.5 ${isDuplicate ? 'text-red-600' : 'text-yellow-600'}`}>
                         A {topDuplicate.category} complaint was filed{' '}

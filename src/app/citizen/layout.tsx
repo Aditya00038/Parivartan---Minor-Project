@@ -4,7 +4,6 @@ import CitizenHeader from '@/components/citizen-header';
 import CitizenBottomNav from '@/components/citizen-bottom-nav';
 import AuthGuard from '@/components/auth-guard';
 import { PWAInstallBanner } from '@/components/pwa-install-button';
-import CitizenChatbotWidget from '@/components/citizen-chatbot-widget';
 import { usePathname } from 'next/navigation';
 import GoogleTranslate from '@/components/GoogleTranslate';
 
@@ -26,8 +25,6 @@ export default function CitizenLayout({
         {!isLoginRoute && (
           <>
             <PWAInstallBanner variant="citizen" />
-
-            <CitizenChatbotWidget />
 
             <CitizenBottomNav />
           </>

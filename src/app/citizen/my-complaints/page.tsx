@@ -153,7 +153,7 @@ export default function MyComplaintsPage() {
                         </span>
                         {report.citizenRating && (
                           <span className="flex items-center gap-1 text-xs text-amber-600">
-                            <Star className="h-3 w-3 fill-amber-400" />{report.citizenRating}★
+                            <Star className="h-3 w-3 fill-amber-400" />{report.citizenRating}
                           </span>
                         )}
                       </div>

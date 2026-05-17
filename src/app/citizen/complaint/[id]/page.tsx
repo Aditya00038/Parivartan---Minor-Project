@@ -140,7 +140,7 @@ export default function ComplaintDetailPage() {
         citizenFeedback: ratingFeedback.trim() || null,
       });
       setRatingSubmitted(true);
-      toast({ title: '⭐ Thank you for your feedback!', description: 'Your rating helps us improve.' });
+      toast({ title: 'Thank you for your feedback', description: 'Your rating helps us improve.' });
     } catch {
       toast({ title: 'Failed to submit rating', variant: 'destructive' });
     } finally {
@@ -160,9 +160,9 @@ export default function ComplaintDetailPage() {
           <p className="text-xs font-medium text-white/75">Complaint #{report.id.slice(-6).toUpperCase()}</p>
           <h1 className="mt-1 text-lg font-bold">{report.status}</h1>
           <p className="mt-0.5 text-xs text-white/80">
-            {isResolved ? '✅ Your issue has been resolved' :
-             isRejected ? '❌ This complaint was rejected' :
-             '🔄 We are working on this'}
+            {isResolved ? 'Your issue has been resolved' :
+             isRejected ? 'This complaint was rejected' :
+             'We are working on this'}
           </p>
         </div>
         <Badge className={`${statusColors[report.status]} text-sm font-semibold text-white border-0`}>
@@ -394,15 +394,6 @@ export default function ComplaintDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base">Rewards</CardTitle></CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>Earn 10 points when your complaint is resolved. Collect points for coupons, cashback, and more.</p>
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href="/citizen/dashboard">Check reward progress →</Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

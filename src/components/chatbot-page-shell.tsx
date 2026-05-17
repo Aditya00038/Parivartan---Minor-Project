@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Send, Bot, User, Loader2, Trash2, Sparkles, X } from 'lucide-react';
+import { Send, Bot, User, Loader2, Trash2, X } from 'lucide-react';
 import { chatbotFlow } from '@/ai/flows/chatbot-flow';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 
-const quickQuestions = ['How to report?', 'Track my reports', 'Report status help'];
+const quickQuestions = [
+  'How to report an issue?',
+  'Track my complaint',
+  'What issues can I report?',
+  'How are points earned?',
+  'Contact municipality',
+];
 
 type Message = {
   role: 'user' | 'model';
@@ -123,52 +129,65 @@ export function ChatbotPageShell({ compact = false, onClose }: ChatbotPageShellP
 
   const shellClasses = compact
     ? 'flex h-full flex-col overflow-hidden bg-background text-foreground'
-    : 'flex min-h-[calc(100vh-8rem)] flex-col bg-background text-foreground md:min-h-[calc(100vh-4rem)]';
+    : 'flex min-h-[calc(100vh-14rem)] flex-col bg-background text-foreground md:min-h-[calc(100vh-12rem)]';
 
   return (
     <div className={shellClasses}>
-      <div className="bg-slate-900 px-4 py-4 text-white shadow-lg dark:bg-slate-950">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-              <Bot className="h-6 w-6" />
+      {compact && (
+        <div className="bg-slate-900 px-4 py-4 text-white shadow-lg dark:bg-slate-950">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+                <Bot className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold">Roadie</h1>
+                <p className="text-xs text-white/75">AI Assistant · Always here to help</p>
+              </div>
             </div>
-            <div>
-              <h1 className="flex items-center gap-2 text-base font-bold">
-                Roadie
-                <Sparkles className="h-4 w-4 text-emerald-300" />
-              </h1>
-              <p className="text-xs text-white/75">AI Assistant · Always here to help</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearHistory}
-              className="h-9 w-9 rounded-full text-white hover:bg-white/10"
-              title="Clear chat history"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-            {onClose && (
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onClose}
+                onClick={clearHistory}
                 className="h-9 w-9 rounded-full text-white hover:bg-white/10"
-                title="Close chat"
+                title="Clear chat history"
               >
-                <X className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
-            )}
+              {onClose && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="h-9 w-9 rounded-full text-white hover:bg-white/10"
+                  title="Close chat"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-y-auto bg-slate-50 px-4 py-4 dark:bg-slate-900">
         <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          {/* Full-page clear button */}
+          {!compact && messages.length > 1 && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearHistory}
+                className="h-7 gap-1.5 rounded-full text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear chat
+              </Button>
+            </div>
+          )}
           {messages.map((msg, index) => (
             <div
               key={index}
