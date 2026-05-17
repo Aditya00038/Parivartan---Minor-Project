@@ -12,53 +12,62 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Status colors for markers
-const statusColors = {
-  Pending: { primary: '#ef4444', secondary: '#dc2626' },
-  'In Progress': { primary: '#f59e0b', secondary: '#d97706' },
-  Resolved: { primary: '#22c55e', secondary: '#16a34a' },
-  default: { primary: '#3b82f6', secondary: '#2563eb' }
+// Category colours — each problem type gets a distinct dot colour
+const CATEGORY_COLORS: Record<string, string> = {
+  'Garbage':          '#f59e0b',
+  'Road Damage':      '#ef4444',
+  'Water Supply':     '#3b82f6',
+  'Electrical':       '#8b5cf6',
+  'Sewage':           '#10b981',
+  'Tree / Garden':    '#22c55e',
+  'Encroachment':     '#f97316',
+  'Noise':            '#ec4899',
+  'Other':            '#6b7280',
 };
 
-// Create custom marker icon based on status
-const createReportIcon = (status?: string, isAnimated = false) => {
-  const colors = statusColors[status as keyof typeof statusColors] || statusColors.default;
+function getCategoryColor(category?: string): string {
+  if (!category) return '#6366f1';
+  return CATEGORY_COLORS[category] ?? '#6366f1';
+}
+
+// Create custom marker icon coloured by category
+const createReportIcon = (category?: string) => {
+  const color = getCategoryColor(category);
   return L.divIcon({
     className: 'custom-report-marker',
     html: `<div style="
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
+      width: 30px;
+      height: 30px;
+      background: ${color};
       border: 3px solid white;
       border-radius: 50%;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
       display: flex;
       align-items: center;
       justify-content: center;
-      ${isAnimated ? 'animation: pulse 2s infinite;' : ''}
       position: relative;
     ">
       <div style="
-        width: 10px;
-        height: 10px;
-        background: white;
+        width: 9px;
+        height: 9px;
+        background: rgba(255,255,255,0.85);
         border-radius: 50%;
       "></div>
       <div style="
         position: absolute;
-        bottom: -8px;
+        bottom: -7px;
         left: 50%;
         transform: translateX(-50%);
         width: 0;
         height: 0;
-        border-left: 6px solid transparent;
-        border-right: 6px solid transparent;
-        border-top: 8px solid ${colors.secondary};
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 7px solid ${color};
       "></div>
     </div>`,
-    iconSize: [32, 40],
-    iconAnchor: [16, 40],
-    popupAnchor: [0, -40],
+    iconSize: [30, 37],
+    iconAnchor: [15, 37],
+    popupAnchor: [0, -37],
   });
 };
 
@@ -179,59 +188,49 @@ export default function HeatMap({
       maxZoom: 19,
     }).addTo(mapInstanceRef.current);
 
-    // Add Pune city boundary overlay (approximate)
-    const puneBoundary = L.polygon([
-      [18.62, 73.72], [18.65, 73.78], [18.64, 73.85], [18.60, 73.92],
-      [18.55, 73.95], [18.48, 73.94], [18.42, 73.90], [18.38, 73.85],
-      [18.40, 73.78], [18.44, 73.72], [18.50, 73.68], [18.56, 73.68],
-      [18.62, 73.72]
-    ], {
-      color: '#6366f1',
-      weight: 3,
-      fillColor: '#6366f1',
-      fillOpacity: 0.03,
-      dashArray: '8, 4'
-    }).addTo(mapInstanceRef.current);
 
     // Initialize markers layer
     markersLayerRef.current = L.layerGroup().addTo(mapInstanceRef.current);
 
-    // Add legend control using custom Control class
-    const LegendControl = L.Control.extend({
-      options: { position: 'bottomright' as L.ControlPosition },
-      onAdd: function() {
-      const div = L.DomUtil.create('div', 'map-legend');
-      div.innerHTML = `
-        <div style="
-          background: rgba(255,255,255,0.95);
-          backdrop-filter: blur(8px);
-          padding: 12px 16px;
-          border-radius: 12px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-          font-size: 12px;
-          ">
-            <div style="font-weight: 600; margin-bottom: 8px; color: #1f2937;">Report Status</div>
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 14px; height: 14px; background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></div>
-                <span style="color: #4b5563;">Pending</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 14px; height: 14px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></div>
-                <span style="color: #4b5563;">In Progress</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 14px; height: 14px; background: linear-gradient(135deg, #22c55e, #16a34a); border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></div>
-                <span style="color: #4b5563;">Resolved</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 14px; height: 14px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"></div>
-                <span style="color: #4b5563;">Cluster</span>
+    // Legend: coloured by category
+      const LEGEND_ITEMS = [
+        { label: 'Garbage',       color: '#f59e0b' },
+        { label: 'Road Damage',   color: '#ef4444' },
+        { label: 'Water Supply',  color: '#3b82f6' },
+        { label: 'Electrical',    color: '#8b5cf6' },
+        { label: 'Sewage',        color: '#10b981' },
+        { label: 'Tree / Garden', color: '#22c55e' },
+        { label: 'Encroachment',  color: '#f97316' },
+        { label: 'Noise',         color: '#ec4899' },
+        { label: 'Other',         color: '#6b7280' },
+      ];
+
+      const LegendControl = L.Control.extend({
+        options: { position: 'bottomright' as L.ControlPosition },
+        onAdd: function() {
+          const div = L.DomUtil.create('div', 'map-legend');
+          div.innerHTML = `
+            <div style="
+              background: rgba(255,255,255,0.96);
+              backdrop-filter: blur(10px);
+              padding: 12px 14px;
+              border-radius: 14px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+              font-size: 11px;
+              min-width: 140px;
+            ">
+              <div style="font-weight: 700; margin-bottom: 8px; color: #111827; font-size: 12px;">Category</div>
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                ${LEGEND_ITEMS.map(item => `
+                  <div style="display: flex; align-items: center; gap: 7px;">
+                    <div style="width: 12px; height: 12px; background: ${item.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); flex-shrink: 0;"></div>
+                    <span style="color: #4b5563;">${item.label}</span>
+                  </div>
+                `).join('')}
               </div>
             </div>
-          </div>
-        `;
-        return div;
+          `;
+          return div;
         }
       });
       new LegendControl().addTo(mapInstanceRef.current);
@@ -355,9 +354,9 @@ export default function HeatMap({
             icon: createClusterIcon(point.count)
           });
         } else {
-          // Use status-colored icon for single reports
+          // Use category-coloured icon for single reports
           marker = L.marker([point.lat, point.lng], {
-            icon: createReportIcon(point.status)
+            icon: createReportIcon(point.category)
           });
         }
 
@@ -442,7 +441,7 @@ export default function HeatMap({
       `}</style>
       <div 
         ref={mapRef} 
-        className={`w-full h-full min-h-[400px] rounded-xl overflow-hidden ${className}`}
+        className={`w-full h-full rounded-xl overflow-hidden ${className}`}
         style={{ zIndex: 1, background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)' }}
       />
     </div>

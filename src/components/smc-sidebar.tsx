@@ -11,6 +11,7 @@ import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import Image from 'next/image';
 
 export default function SmcSidebar() {
   const pathname = usePathname();
@@ -64,8 +65,14 @@ export default function SmcSidebar() {
         <div className="flex h-full max-h-screen flex-col">
           {/* Header */}
           <div className="flex h-14 items-center gap-2.5 border-b px-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-sm">
-              <Shield className="h-4 w-4" />
+            <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm flex items-center justify-center shrink-0">
+              <Image
+                src="/logo.png"
+                alt="PMC Admin Logo"
+                width={36}
+                height={36}
+                className="object-cover"
+              />
             </div>
             <div className="flex flex-col">
               <span className="text-[13px] font-bold tracking-tight">PMC Admin</span>
@@ -111,8 +118,14 @@ export default function SmcSidebar() {
           <SheetContent side="left" className="flex w-64 flex-col p-0">
             <SheetHeader className="border-b px-4 py-3">
               <SheetTitle className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-                  <Shield className="h-4 w-4" />
+                <div className="relative h-9 w-9 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm flex items-center justify-center shrink-0">
+                  <Image
+                    src="/logo.png"
+                    alt="PMC Admin Logo"
+                    width={36}
+                    height={36}
+                    className="object-cover"
+                  />
                 </div>
                 <div className="flex flex-col items-start">
                   <span className="text-[13px] font-bold">PMC Admin</span>
@@ -137,8 +150,14 @@ export default function SmcSidebar() {
         </Sheet>
         
         <div className="flex items-center gap-1.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-            <Shield className="h-4 w-4" />
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm flex items-center justify-center shrink-0">
+            <Image
+              src="/logo.png"
+              alt="PMC Admin Logo"
+              width={32}
+              height={32}
+              className="object-cover"
+            />
           </div>
           <span className="text-sm font-semibold">PMC Admin</span>
         </div>

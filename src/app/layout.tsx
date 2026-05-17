@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   applicationName: 'Parivartan',
   icons: [
-    { rel: 'icon', url: '/app-icon.svg', type: 'image/svg+xml' },
+    { rel: 'icon', url: '/logo.png', type: 'image/png' },
     { rel: 'icon', url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     { rel: 'apple-touch-icon', url: '/icons/icon-192x192.png' },
   ],
@@ -43,7 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/app-icon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/logo.png" type="image/png" />
         <link rel="icon" href="/icons/icon-192x192.png" type="image/png" sizes="192x192" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
