@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { useSearchParams } from 'next/navigation';
@@ -33,7 +33,7 @@ const priorityBg: Record<string, string> = {
 const STATUS_FILTERS = ['All', 'Submitted', 'Under Verification', 'Assigned', 'In Progress', 'Resolved', 'Rejected'];
 const PRIORITY_FILTERS = ['All', 'Critical', 'High', 'Medium', 'Low'];
 
-export default function DeptComplaintsPage() {
+function DeptComplaintsContent() {
   const searchParams = useSearchParams();
   const firestore = useFirestore();
   const auth = useAuth();
@@ -211,5 +211,30 @@ export default function DeptComplaintsPage() {
         );
       })}
     </div>
+  );
+}
+
+export default function DeptComplaintsPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-4 md:p-6 space-y-4 pb-8 pt-16 md:pt-6">
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-10 w-full rounded-xl" />
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 w-20 shrink-0 rounded-full" />)}
+        </div>
+        {[1, 2, 3].map(i => (
+          <div key={i} className="rounded-2xl border bg-white p-4 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+        ))}
+      </div>
+    }>
+      <DeptComplaintsContent />
+    </Suspense>
   );
 }
