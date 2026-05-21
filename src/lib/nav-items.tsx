@@ -18,9 +18,8 @@ export const userNavItems: NavItem[] = [{ href: '/citizen/profile', label: 'Prof
 export const smcNavItems: NavItem[] = [
   { href: '/smc/dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
   { href: '/smc/complaints', label: 'Complaints', icon: <List /> },
-  { href: '/smc/workers', label: 'Workers', icon: <HardHat /> },
   { href: '/smc/contracts', label: 'Contractors', icon: <UserCheck /> },
-  { href: '/smc/wards', label: 'Wards', icon: <Map /> },
+  { href: '/smc/wards', label: 'Departments', icon: <Map /> },
   { href: '/smc/analytics', label: 'Analytics', icon: <BarChart /> },
   { href: '/smc/civic-services', label: 'Civic Services', icon: <MapPin /> },
   { href: '/smc/notifications', label: 'Alerts', icon: <Bell /> },

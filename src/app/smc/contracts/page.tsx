@@ -1,21 +1,32 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAuth, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { addDoc, collection, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import type { Report } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { UserCheck, Activity, CheckCircle, FileText, ClipboardPlus } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { UserCheck, ClipboardPlus, Upload, FileSpreadsheet, FileText, CheckCircle2, AlertCircle, Trash2, Clock, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { buildAuthHeaders } from '@/lib/client-auth';
-import { AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+
 
 const DEPARTMENT_OPTIONS = [
   'Road Maintenance Department',
@@ -47,12 +58,6 @@ const DESIGNATION_OPTIONS = [
   'Civil Work Builder'
 ];
 
-interface ContractorStats {
-  total: number;
-  inProgress: number;
-  resolved: number;
-}
-
 interface ContractorRecord {
   id: string;
   name: string;
@@ -66,26 +71,19 @@ export default function SmcContractsPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isCreatingContractor, setIsCreatingContractor] = useState(false);
   const [newContractor, setNewContractor] = useState({
-    name: '',
-    phoneNumber: '',
-    email: '',
-    department: 'Road Maintenance Department',
-    wardArea: '',
+    name: '', phoneNumber: '', email: '', department: 'Road Maintenance Department', wardArea: '',
   });
   const [isCreatingWorker, setIsCreatingWorker] = useState(false);
   const [workerCreateConflictMessage, setWorkerCreateConflictMessage] = useState<string | null>(null);
   const [newWorker, setNewWorker] = useState({
-    fullName: '',
-    phoneNumber: '',
-    email: '',
-    department: 'Road Maintenance Department',
-    designation: 'Road Repair Worker',
-    skillType: 'Road Repair',
-    assignedContractor: '',
-    wardArea: '',
+    fullName: '', phoneNumber: '', email: '', department: 'Road Maintenance Department',
+    designation: 'Road Repair Worker', skillType: 'Road Repair', assignedContractor: '', wardArea: '',
   });
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'contractor' | 'worker' | null>(null);
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -100,70 +98,18 @@ export default function SmcContractsPage() {
   const { data: reports, isLoading } = useCollection<Report>(reportsQuery);
   const { data: contractors } = useCollection<ContractorRecord>(contractorsQuery);
 
-  const contractorData = useMemo(() => {
-    if (!reports) return null;
-
-    const stats: Record<string, ContractorStats> = {};
-
-    reports.forEach(report => {
-      if (report.assignedContractor) {
-        const contractor = report.assignedContractor;
-        if (!stats[contractor]) {
-          stats[contractor] = { total: 0, inProgress: 0, resolved: 0 };
-        }
-        stats[contractor].total++;
-        if (report.status === 'In Progress' || report.status === 'Assigned') {
-          stats[contractor].inProgress++;
-        } else if (report.status === 'Resolved') {
-          stats[contractor].resolved++;
-        }
-      }
-    });
-
-    return Object.entries(stats).map(([name, data]) => ({
-      name,
-      ...data,
-      completionRate: data.total > 0 ? (data.resolved / data.total) * 100 : 0,
-    })).sort((a,b) => b.total - a.total);
-  }, [reports]);
-
   const contractorDepartmentMap = useMemo(() => {
     const map: Record<string, string> = {};
-    (contractors || []).forEach((contractor) => {
-      if (contractor.name && contractor.department) {
-        map[contractor.name] = contractor.department;
-      }
-    });
-
-    (reports || []).forEach((report) => {
-      if (!report.assignedContractor || !report.department) {
-        return;
-      }
-
-      if (!map[report.assignedContractor]) {
-        map[report.assignedContractor] = report.department;
-      }
-    });
+    (contractors || []).forEach((c) => { if (c.name && c.department) map[c.name] = c.department; });
+    (reports || []).forEach((r) => { if (r.assignedContractor && r.department && !map[r.assignedContractor]) map[r.assignedContractor] = r.department; });
     return map;
-  }, [reports]);
+  }, [reports, contractors]);
 
   const contractorOptions = useMemo(() => {
     const set = new Set<string>();
-
-    (contractors || []).forEach((contractor) => {
-      if (contractor.name) {
-        set.add(contractor.name);
-      }
-    });
-
-    (contractorData || []).forEach((item) => {
-      if (item.name) {
-        set.add(item.name);
-      }
-    });
-
+    (contractors || []).forEach(c => { if (c.name) set.add(c.name); });
     return Array.from(set).sort();
-  }, [contractors, contractorData]);
+  }, [contractors]);
 
   const handleNewContractorChange = (field: keyof typeof newContractor, value: string) => {
     setNewContractor((previous) => ({ ...previous, [field]: value }));
@@ -220,9 +166,31 @@ export default function SmcContractsPage() {
     setNewWorker((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleCreateWorker = async () => {
-    setWorkerCreateConflictMessage(null);
+  const handleConfirmAction = () => {
+    setIsConfirmOpen(false);
+    if (pendingAction === 'contractor') {
+      handleCreateContractor();
+    } else if (pendingAction === 'worker') {
+      handleCreateWorker();
+    }
+    setPendingAction(null);
+  };
 
+  const requestCreateContractor = () => {
+    if (!newContractor.name || !newContractor.phoneNumber || !newContractor.department) {
+      toast({
+        variant: 'destructive',
+        title: 'Required fields missing',
+        description: 'Contractor name, phone number, and department are required.',
+      });
+      return;
+    }
+    setPendingAction('contractor');
+    setIsConfirmOpen(true);
+  };
+
+  const requestCreateWorker = () => {
+    setWorkerCreateConflictMessage(null);
     if (
       !newWorker.fullName ||
       !newWorker.phoneNumber ||
@@ -239,6 +207,13 @@ export default function SmcContractsPage() {
       });
       return;
     }
+    setPendingAction('worker');
+    setIsConfirmOpen(true);
+  };
+
+  const handleCreateWorker = async () => {
+
+
 
     setIsCreatingWorker(true);
     try {
@@ -297,16 +272,14 @@ export default function SmcContractsPage() {
   return (
     <div className="space-y-8">
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6 md:p-8 rounded-lg shadow-lg">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Contractor Performance</h1>
-        <p className="text-base md:text-lg">An overview of work distribution and completion rates.</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">Contractors & Workers</h1>
+        <p className="text-base md:text-lg">Manage contractors and add workers.</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><UserCheck /> Contractor & Worker Overview</CardTitle>
-          <CardDescription>
-            Performance metrics for all assigned contractors and field workers.
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2"><UserCheck /> Contractor & Worker Management</CardTitle>
+          <CardDescription>Manually add contractors and field workers.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6 rounded-xl border p-4">
@@ -346,8 +319,8 @@ export default function SmcContractsPage() {
               />
             </div>
             <div className="mt-4 flex justify-end">
-              <Button onClick={handleCreateContractor} disabled={isCreatingContractor}>
-                {isCreatingContractor ? 'Adding contractor...' : 'Add Contractor'}
+              <Button onClick={requestCreateContractor} disabled={isCreatingContractor}>
+                {isCreatingContractor ? 'Adding...' : 'Add Contractor'}
               </Button>
             </div>
           </div>
@@ -446,62 +419,29 @@ export default function SmcContractsPage() {
             ) : null}
 
             <div className="mt-4 flex justify-end">
-              <Button onClick={handleCreateWorker} disabled={isCreatingWorker || contractorOptions.length === 0}>
-                {isCreatingWorker ? 'Adding worker...' : 'Add Worker'}
+              <Button onClick={requestCreateWorker} disabled={isCreatingWorker || contractorOptions.length === 0}>
+                {isCreatingWorker ? 'Adding...' : 'Add Worker'}
               </Button>
             </div>
           </div>
-
-          <div className="overflow-x-auto -mx-6 px-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Contractor / Worker</TableHead>
-                <TableHead className="text-center"><FileText className="inline-block mr-1 h-4 w-4" /> <span className="hidden sm:inline">Total</span></TableHead>
-                <TableHead className="text-center hidden sm:table-cell"><Activity className="inline-block mr-1 h-4 w-4" /> In Progress</TableHead>
-                <TableHead className="text-center hidden md:table-cell"><CheckCircle className="inline-block mr-1 h-4 w-4" /> Resolved</TableHead>
-                <TableHead className="hidden sm:table-cell">Completion</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-6 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-12 mx-auto" /></TableCell>
-                  <TableCell className="hidden sm:table-cell"><Skeleton className="h-6 w-12 mx-auto" /></TableCell>
-                  <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-12 mx-auto" /></TableCell>
-                  <TableCell className="hidden sm:table-cell"><Skeleton className="h-6 w-32" /></TableCell>
-                </TableRow>
-              ))}
-              {!isLoading && contractorData?.map(c => (
-                <TableRow key={c.name}>
-                  <TableCell className="font-medium">
-                    <div>{c.name}</div>
-                    <div className="text-xs text-muted-foreground sm:hidden">
-                      {c.resolved}/{c.total} completed ({c.completionRate.toFixed(0)}%)
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">{c.total}</TableCell>
-                  <TableCell className="text-center hidden sm:table-cell">{c.inProgress}</TableCell>
-                  <TableCell className="text-center hidden md:table-cell">{c.resolved}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <Progress value={c.completionRate} className="h-2 w-24" />
-                      <span className="text-xs text-muted-foreground">{c.completionRate.toFixed(0)}%</span>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </div>
-          {!isLoading && (!contractorData || contractorData.length === 0) && (
-            <div className="text-center py-12 text-muted-foreground">
-              No contractors have been assigned to tasks yet.
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction === 'contractor' && `This will add a new contractor: ${newContractor.name} to the ${newContractor.department}.`}
+              {pendingAction === 'worker' && `This will add a new worker: ${newWorker.fullName} under contractor ${newWorker.assignedContractor}.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
