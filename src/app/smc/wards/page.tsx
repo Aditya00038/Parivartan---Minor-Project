@@ -146,13 +146,16 @@ export default function SmcWardsPage() {
 
       {/* Loading Skeleton Grid */}
       {isLoading && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="max-w-4xl mx-auto grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}>
-              <CardHeader><Skeleton className="h-7 w-3/5" /></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-20" /></div>
-                <Skeleton className="h-10 w-full" />
+              <CardHeader className="pb-3"><Skeleton className="h-5 w-3/5" /></CardHeader>
+              <CardContent className="pb-4">
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t">
+                  <Skeleton className="h-8 w-10 mx-auto" />
+                  <Skeleton className="h-8 w-10 mx-auto" />
+                  <Skeleton className="h-8 w-10 mx-auto" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -161,63 +164,37 @@ export default function SmcWardsPage() {
 
       {/* Loaded Simple Aligned Cards Grid */}
       {!isLoading && departmentData && (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="max-w-4xl mx-auto grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {departmentData.map(dept => {
             const IconComponent = dept.icon;
             return (
-              <Card key={dept.name}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <IconComponent className="h-6 w-6 text-primary" />
-                    {dept.name}
+              <Card key={dept.name} className="shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2.5 text-base font-bold">
+                    <IconComponent className="h-5 w-5 text-primary shrink-0" />
+                    <span className="truncate">{dept.name}</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="pb-4">
                   {/* Clean Stats Grid */}
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-3 gap-2 text-center border-t pt-3">
                     <div>
-                      <p className="text-2xl font-bold">{dept.totalWorkers}</p>
-                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                        <Users className="h-3 w-3" /> Workers
+                      <p className="text-lg font-extrabold text-slate-800 dark:text-slate-200">{dept.totalWorkers}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                        <Users className="h-3.5 w-3.5" /> Workers
                       </p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-amber-600">{dept.open}</p>
-                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                        <Activity className="h-3 w-3" /> Open Cases
+                      <p className="text-lg font-extrabold text-amber-600 dark:text-amber-500">{dept.open}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                        <Activity className="h-3.5 w-3.5" /> Open
                       </p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">{dept.total}</p>
-                      <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-                        <FileText className="h-3 w-3" /> Total Reports
+                      <p className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">{dept.teams.length}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                        <HardHat className="h-3.5 w-3.5" /> Teams
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Core Responsibilities */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Core Responsibilities</p>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-0.5">
-                      {dept.handles.map(handle => (
-                        <li key={handle} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                          {handle}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Designated Crews */}
-                  <div className="space-y-2 pt-4 border-t">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Designated Crews</p>
-                    <div className="flex flex-wrap gap-2">
-                      {dept.teams.map(team => (
-                        <Badge key={team} variant="secondary" className="flex items-center gap-1 font-medium">
-                          <HardHat className="h-3 w-3 text-slate-500" />
-                          {team}
-                        </Badge>
-                      ))}
                     </div>
                   </div>
                 </CardContent>
