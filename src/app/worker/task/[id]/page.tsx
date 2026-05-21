@@ -20,12 +20,13 @@ import {
   XCircle,
 } from 'lucide-react';
 
-import { useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useDoc, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { useWorkerProfile } from '@/hooks/use-worker-profile';
 import { buildWorkerLogEntry, isAssignedToWorker, isOpenLowPriorityTask, workerStatusColors } from '@/lib/worker';
 import type { Report } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { buildAuthHeaders } from '@/lib/client-auth';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -63,10 +64,73 @@ function MediaPreview({
   );
 }
 
+const getInstructionsForCategory = (category: string = '') => {
+  const normalized = category.toLowerCase();
+  
+  if (normalized.includes('pothole') || normalized.includes('crack') || normalized.includes('surface')) {
+    return {
+      goal: 'Restore road safety and smooth driving conditions by sealing cracks or filling potholes.',
+      steps: [
+        'Clean the damaged area of all loose debris, water, and dirt.',
+        'Apply high-quality bituminous cold mix or hot mix asphalt to fill the depression.',
+        'Compact the mix thoroughly using a roller or hand rammer until it is flush with the surrounding road.',
+        'Upload the completed "After Work Photo" showing a flat, smooth, and dry asphalt surface.'
+      ]
+    };
+  }
+  
+  if (normalized.includes('garbage') || normalized.includes('debris') || normalized.includes('waste') || normalized.includes('sanitation')) {
+    return {
+      goal: 'Clear the waste dump, restore absolute cleanliness and hygiene to the spot, and ensure proper garbage disposal.',
+      steps: [
+        'Gather all litter, waste bags, and dumped debris from the area.',
+        'Sweep the surrounding space to remove small particles and organic waste.',
+        'Load all collected waste into the PMC sanitation vehicle.',
+        'Upload the completed "After Work Photo" showing a completely clean, clear, and swept public space.'
+      ]
+    };
+  }
+  
+  if (normalized.includes('light') || normalized.includes('electric')) {
+    return {
+      goal: 'Restore streetlight functionality to ensure pedestrian safety and neighborhood security.',
+      steps: [
+        'Inspect the bulb, fixture, wiring, and circuit connection of the non-functioning pole.',
+        'Replace the faulty bulb or LED panel with a certified working replacement.',
+        'Fix any disconnected wiring or electrical connection issues securely.',
+        'Test the light to verify it works, then upload the "After Work Photo" proving the light is fully turned on and functional.'
+      ]
+    };
+  }
+  
+  if (normalized.includes('water') || normalized.includes('drainage') || normalized.includes('flood')) {
+    return {
+      goal: 'Drain all standing water and resolve underlying blockages to prevent breeding ground for mosquitoes and road erosion.',
+      steps: [
+        'Inspect the nearby drain grates and culverts for leaf piles, plastic debris, or blockages.',
+        'Clear any mud or rubbish clogging the water flow.',
+        'Ensure smooth runoff through the drainage channel.',
+        'Upload the "After Work Photo" showing the road completely free of standing water.'
+      ]
+    };
+  }
+
+  // Default
+  return {
+    goal: 'Inspect the reported citizen issue and perform complete corrective maintenance.',
+    steps: [
+      'Arrive at the geocoded GPS location and inspect the issue details.',
+      'Execute necessary repairs, replacement, or sanitation cleanup safely.',
+      'Upload the completed "After Work Photo" as proof of resolution.'
+    ]
+  };
+};
+
 export default function WorkerTaskPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const { workerId, workerName, isLoading: isWorkerLoading } = useWorkerProfile();
   const [activeAction, setActiveAction] = useState<string | null>(null);
@@ -85,6 +149,10 @@ export default function WorkerTaskPage() {
 
   const isSelfAssignable = report ? isOpenLowPriorityTask(report) : false;
   const canOperate = isMine || isSelfAssignable;
+  
+  const instructions = useMemo(() => {
+    return getInstructionsForCategory(report?.category);
+  }, [report?.category]);
   const mapsUrl =
     report?.latitude && report?.longitude
       ? `https://www.google.com/maps?q=${report.latitude},${report.longitude}`
@@ -97,16 +165,16 @@ export default function WorkerTaskPage() {
 
     try {
       if (action === 'accept') {
-        await updateDoc(reportRef, {
-          assignedWorkerId: workerId,
-          assignedContractor: workerName,
-          workerAssignmentStatus: 'Accepted',
-          acceptedAt: report.acceptedAt || new Date().toISOString(),
-          selfAssigned: report.selfAssigned || isSelfAssignable,
-          status: 'Assigned',
-          workflowStage: 'assigned_worker',
-          actionLog: arrayUnion(buildWorkerLogEntry('Assigned', workerName, isSelfAssignable ? 'Task self-assigned by worker.' : 'Task accepted by worker.')),
+        if (!auth) return;
+        const headers = await buildAuthHeaders(auth, { 'Content-Type': 'application/json' });
+        const res = await fetch(`/api/worker/tasks/${report.id}/accept`, {
+          method: 'POST',
+          headers,
         });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to accept task');
+        }
 
         toast({ title: 'Task accepted', description: 'You can now upload before-work proof and begin the job.' });
         return;
@@ -190,15 +258,60 @@ export default function WorkerTaskPage() {
       <div className="grid gap-6 lg:grid-cols-[1.6fr,1fr]">
         <div className="space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <CardTitle className="text-2xl">{report.description}</CardTitle>
-                  <CardDescription className="mt-2">Report ID: {report.id}</CardDescription>
+                  <CardTitle className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    ⚠️ {report.category || 'Municipal Issue'}
+                  </CardTitle>
+                  <CardDescription className="mt-1 font-mono text-xs">Report ID: {report.id}</CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Badge className={workerStatusColors[report.status]}>{report.status}</Badge>
-                  <Badge variant="secondary">{report.priority || 'N/A'}</Badge>
+                <div className="flex gap-2 self-start">
+                  <Badge className={`${workerStatusColors[report.status]} text-white border-0 shadow-sm px-2.5 py-0.5 text-xs font-semibold`}>{report.status}</Badge>
+                  <Badge variant="outline" className={`shrink-0 ${
+                    report.priority === 'Medium'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : report.priority === 'High' || report.priority === 'Critical'
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : 'bg-green-50 text-green-700 border-green-200'
+                  } shadow-sm px-2.5 py-0.5 text-xs font-semibold`}>
+                    {report.priority || 'N/A'}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Dynamic Action & Goal Box */}
+              <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
+                {/* Problem Section (1-line) */}
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Problem</span>
+                  <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-snug">
+                    {report.description.split(/[.!?]/)[0].trim() || report.description}.
+                  </p>
+                </div>
+                
+                {/* Goal Section */}
+                <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-3">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Goal</span>
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 leading-snug flex items-center gap-1.5">
+                    <span>🎯</span>
+                    <span>{instructions.goal}</span>
+                  </p>
+                </div>
+
+                {/* How to Solve Section */}
+                <div className="border-t border-slate-200/60 dark:border-slate-800/60 pt-3 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">How to Solve It (Action Steps)</span>
+                  <ul className="space-y-2 pl-0.5">
+                    {instructions.steps.map((step, idx) => (
+                      <li key={idx} className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2.5 leading-relaxed">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[10px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/40">
+                          {idx + 1}
+                        </span>
+                        <span className="mt-0.5">{step}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </CardHeader>

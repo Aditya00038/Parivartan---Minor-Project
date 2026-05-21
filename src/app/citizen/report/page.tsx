@@ -39,7 +39,7 @@ import Image from 'next/image';
 import { useUser } from '@/firebase/provider';
 import { useFirestore } from '@/firebase/provider';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, updateDoc, arrayUnion, query, where, getDocs } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { aiDamageAssessment } from '@/ai/flows/ai-damage-assessment';
 import { analyzeReportForWorkflow, getInitialStatus, createAutomatedActionLog, calculateAutomationConfidence } from '@/lib/workflow-automation';
@@ -156,7 +156,7 @@ export default function ReportProblemPage() {
   const runAiAnalysis = useCallback(async (imageDataUrl: string) => {
     setIsAnalyzing(true);
     try {
-      const result = await aiDamageAssessment({ mediaDataUri: imageDataUrl });
+      const result = (await aiDamageAssessment({ mediaDataUri: imageDataUrl })) as any;
       const normalizedCategory = normalizeCategory(result.damageCategory || 'None');
       form.setValue('category', normalizedCategory);
       if (result.description) {
@@ -348,7 +348,7 @@ export default function ReportProblemPage() {
         aiAnalysis = cachedAiAnalysis;
       } else {
         try {
-          aiAnalysis = await aiDamageAssessment({ mediaDataUri: values.photo });
+          aiAnalysis = (await aiDamageAssessment({ mediaDataUri: values.photo })) as any;
         } catch (e) {
           console.error('AI analysis failed, continuing without it:', e);
           aiAnalysis = null; // Use null instead of undefined for Firebase
@@ -381,7 +381,48 @@ export default function ReportProblemPage() {
         notes: 'Report submitted by citizen.',
       };
 
-      const automatedLogEntry = createAutomatedActionLog(workflow);
+      // Step 3.5: Auto-select and assign best worker if autoAssign is true
+      let assignedWorkerId = '';
+      let assignedContractor = '';
+
+      if (workflow.autoAssign) {
+        try {
+          const usersRef = collection(firestore, 'users');
+          const workersQuery = query(
+            usersRef,
+            where('role', '==', 'worker')
+          );
+          const querySnapshot = await getDocs(workersQuery);
+          const workersList: any[] = [];
+          querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            workersList.push({
+              id: docSnap.id,
+              name: data.name || '',
+              department: data.department || '',
+              activeTaskCount: data.activeTasks || 0,
+            });
+          });
+
+          // Filter by department
+          const deptWorkers = workersList.filter(
+            (w) => w.department && w.department.toLowerCase() === workflow.suggestedDepartment.toLowerCase()
+          );
+
+          if (deptWorkers.length > 0) {
+            // Select worker with least active tasks
+            const bestWorker = deptWorkers.reduce((best, current) => {
+              return (current.activeTaskCount || 0) < (best.activeTaskCount || 0) ? current : best;
+            });
+            assignedWorkerId = bestWorker.id;
+            assignedContractor = bestWorker.name;
+          }
+        } catch (err) {
+          console.error('Error auto-selecting worker:', err);
+        }
+      }
+
+      const automatedLogEntry = createAutomatedActionLog(workflow, assignedContractor || undefined);
 
       // Step 4: Create report with all automation data
       const newReportRef = await addDocumentNonBlocking(reportsCollection, {
@@ -402,6 +443,8 @@ export default function ReportProblemPage() {
         priority: workflow.suggestedPriority,
         estimatedResolutionTime: workflow.estimatedResolutionTime,
         workflowStage: workflow.autoAssign ? 'assigned_worker' : 'pending_admin',
+        assignedWorkerId: assignedWorkerId || null,
+        assignedContractor: assignedContractor || null,
         aiAnalysis: aiAnalysis,
         automationConfidence: automationConfidence,
         actionLog: [initialLogEntry, automatedLogEntry],

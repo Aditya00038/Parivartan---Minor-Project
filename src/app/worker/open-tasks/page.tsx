@@ -66,10 +66,10 @@ export default function WorkerOpenTasksPage() {
     <div className="space-y-5 pb-6">
       {/* Hero */}
       <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-600 p-6 text-white shadow-xl">
-        <p className="text-sm font-medium text-white/75">Self-Assignment Queue</p>
+         <p className="text-sm font-medium text-white/75">Self-Assignment Queue</p>
         <h1 className="mt-1 text-2xl font-bold">Open Tasks</h1>
         <p className="mt-1 text-sm text-white/80">
-          {isLoading ? 'Loading…' : `${openTasks.length} low-priority task${openTasks.length !== 1 ? 's' : ''} available`}
+          {isLoading ? 'Loading…' : `${openTasks.length} low/medium priority task${openTasks.length !== 1 ? 's' : ''} available`}
         </p>
       </div>
 
@@ -77,7 +77,7 @@ export default function WorkerOpenTasksPage() {
       <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
         <HardHat className="mt-0.5 h-4 w-4 shrink-0 text-sky-500" />
         <p className="text-sm text-sky-700">
-          These are low-priority tasks not yet assigned to anyone. Accept one to make it yours — first come, first served.
+          These are low and medium priority tasks not yet assigned to anyone. Accept one to make it yours — first come, first served.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export default function WorkerOpenTasksPage() {
         <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 text-center">
           <HardHat className="mb-3 h-14 w-14 text-muted-foreground/40" />
           <h3 className="text-lg font-semibold">All caught up!</h3>
-          <p className="mt-1 text-sm text-muted-foreground">No open low-priority tasks right now. Check back later.</p>
+          <p className="mt-1 text-sm text-muted-foreground">No open low or medium priority tasks right now. Check back later.</p>
           <Button asChild variant="outline" className="mt-4">
             <Link href="/worker/task">View My Tasks</Link>
           </Button>
@@ -115,7 +115,13 @@ export default function WorkerOpenTasksPage() {
           <div className="p-4">
             <div className="flex items-start justify-between gap-2 mb-2">
               <p className="font-semibold leading-snug line-clamp-2">{task.description}</p>
-              <Badge variant="outline" className="shrink-0 bg-green-50 text-green-700 border-green-200">Low</Badge>
+              <Badge variant="outline" className={`shrink-0 ${
+                task.priority === 'Medium'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-green-50 text-green-700 border-green-200'
+              }`}>
+                {task.priority || 'Medium'}
+              </Badge>
             </div>
 
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">

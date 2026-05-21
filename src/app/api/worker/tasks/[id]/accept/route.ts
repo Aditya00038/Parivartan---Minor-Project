@@ -31,9 +31,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Re-check eligibility within transaction (conditions may have changed)
       const isStillAssigned = worker.uid === freshData.assignedWorkerId;
       const isStillOpenLowPriority = 
-        freshData.priority === 'Low' &&
+        (freshData.priority === 'Low' || freshData.priority === 'Medium') &&
         !freshData.assignedWorkerId &&
-        freshData.status === 'Submitted';
+        (freshData.status === 'Submitted' || freshData.status === 'Assigned');
 
       if (!isStillAssigned && !isStillOpenLowPriority) {
         throw new Error('TASK_UNAVAILABLE');

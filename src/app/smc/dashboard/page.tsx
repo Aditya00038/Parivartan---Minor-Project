@@ -53,9 +53,9 @@ export default function SmcDashboard() {
 
   const { data: rawReports, isLoading } = useCollection<Report>(allReportsQuery);
 
-  // Only show active (non-completed) reports on the map
+  // Only show active (non-completed) reports on the map, excluding the "None" category
   const activeReports = useMemo(
-    () => (rawReports ?? []).filter(r => ACTIVE_STATUSES.includes(r.status)),
+    () => (rawReports ?? []).filter(r => ACTIVE_STATUSES.includes(r.status) && r.category && r.category.toLowerCase() !== 'none'),
     [rawReports],
   );
 

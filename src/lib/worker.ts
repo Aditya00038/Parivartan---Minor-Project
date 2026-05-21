@@ -23,8 +23,9 @@ export function isAssignedToWorker(report: Report, workerId: string, workerName:
 }
 
 export function isOpenLowPriorityTask(report: Report) {
+  const priority = report.priority || 'Medium';
   return (
-    report.priority === 'Low' &&
+    (priority === 'Low' || priority === 'Medium') &&
     !report.assignedWorkerId &&
     !report.assignedContractor &&
     (report.status === 'Submitted' || report.status === 'Assigned')

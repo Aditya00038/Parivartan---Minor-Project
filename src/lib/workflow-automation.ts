@@ -46,14 +46,30 @@ export function analyzeReportForWorkflow(
       suggestedPriority = aiAnalysis.suggestedPriority;
     }
 
-    // Auto-assign if AI is confident (high severity + likely genuine)
-    if (
-      aiAnalysis.damageDetected &&
-      aiAnalysis.verificationSuggestion === 'Likely genuine' &&
-      aiAnalysis.severity !== 'Low'
-    ) {
-      autoAssign = true;
-      requiresVerification = false;
+    // Check if AI report is valid (damage detected and category is not None)
+    const isAiValid = aiAnalysis.damageDetected && aiAnalysis.damageCategory && aiAnalysis.damageCategory.toLowerCase() !== 'none';
+
+    // Road-related or infrastructure categories
+    const roadInfraCategories = ['pothole', 'crack', 'surface failure', 'streetlight issue', 'road marking', 'street light'];
+    const isRoadOrInfra = aiAnalysis.damageCategory && roadInfraCategories.includes(aiAnalysis.damageCategory.toLowerCase());
+
+    // High/Critical priority
+    const isHighPriority = suggestedPriority === 'High' || suggestedPriority === 'Critical';
+
+    if (isAiValid) {
+      if (isRoadOrInfra && isHighPriority) {
+        // High-priority road/infra problems need admin assignment
+        autoAssign = false;
+        requiresVerification = true;
+      } else {
+        // Other valid problems are auto-assigned directly to workers
+        autoAssign = true;
+        requiresVerification = false;
+      }
+    } else {
+      // AI determined invalid/None category
+      autoAssign = false;
+      requiresVerification = true;
     }
 
     // Adjust resolution time based on severity
@@ -99,13 +115,15 @@ function mapCategoryToDepartment(category: string): DepartmentName {
     'Pothole': 'Engineering',
     'Crack': 'Engineering',
     'Surface failure': 'Engineering',
-    'Water-logged damage': 'Drainage',
-    'Manhole issue': 'Drainage',
-    'Street light': 'Electricity',
-    'Traffic signal': 'Traffic',
-    'Road marking': 'Traffic',
+    'Water-logged damage': 'Water Supply',
+    'Manhole issue': 'Water Supply',
+    'Street light': 'Electrical',
+    'Streetlight Issue': 'Electrical',
+    'Traffic signal': 'Traffic & Roads',
+    'Road marking': 'Traffic & Roads',
     'Water leak': 'Water Supply',
     'Pipe burst': 'Water Supply',
+    'Garbage/Debris': 'Sanitation',
   };
 
   const mapped = categoryMap[category];

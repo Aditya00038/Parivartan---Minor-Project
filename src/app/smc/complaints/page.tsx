@@ -286,6 +286,7 @@ export default function SmcComplaintsPage() {
                       <TableHead>Description</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="hidden md:table-cell">Citizen</TableHead>
+                      <TableHead className="hidden lg:table-cell">Responsibility</TableHead>
                       <TableHead className="hidden md:table-cell">Date</TableHead>
                       <TableHead>
                         <span className="sr-only">Actions</span>
@@ -299,6 +300,7 @@ export default function SmcComplaintsPage() {
                         <TableCell><Skeleton className="h-6 w-48" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-32" /></TableCell>
+                        <TableCell className="hidden lg:table-cell"><Skeleton className="h-6 w-24" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                       </TableRow>
@@ -306,7 +308,7 @@ export default function SmcComplaintsPage() {
 
                     {!isLoading && filteredReports.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="py-14 text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="py-14 text-center text-muted-foreground">
                           No complaints match the selected filters.
                         </TableCell>
                       </TableRow>
@@ -345,6 +347,16 @@ export default function SmcComplaintsPage() {
                           <TableCell className="hidden md:table-cell">
                             {report.userName}
                           </TableCell>
+                          <TableCell className="hidden lg:table-cell">
+                            {report.assignedContractor ? (
+                              <div className="flex items-center gap-1.5 text-sm font-medium text-slate-800 dark:text-slate-200">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                {report.assignedContractor}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic bg-slate-100 px-2 py-0.5 rounded-full">Unassigned</span>
+                            )}
+                          </TableCell>
                           <TableCell className="hidden md:table-cell">
                             {new Date(report.timestamp).toLocaleString()}
                           </TableCell>
@@ -360,49 +372,6 @@ export default function SmcComplaintsPage() {
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem asChild>
                                   <Link href={`/smc/complaint/${report.id}`}>View Details</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="flex items-center gap-2 text-xs">
-                                  <UserCheck className="h-3.5 w-3.5" /> Assign to worker
-                                </DropdownMenuLabel>
-                                {(workers || []).length > 0 ? (
-                                  (workers || []).map((worker) => (
-                                    <DropdownMenuItem
-                                      key={worker.id}
-                                      onSelect={(event) => event.preventDefault()}
-                                      onClick={() => handleAssignWorker(report, worker)}
-                                      disabled={isArchive}
-                                    >
-                                      {worker.name}
-                                    </DropdownMenuItem>
-                                  ))
-                                ) : (
-                                  <DropdownMenuItem disabled>No workers available</DropdownMenuItem>
-                                )}
-                                <DropdownMenuItem
-                                  onSelect={(event) => event.preventDefault()}
-                                  onClick={() => {
-                                    if (canQuickAssign) {
-                                      handleUpdateStatus(report, 'Assigned', { department: report.aiAnalysis?.suggestedDepartment });
-                                    } else {
-                                      toast({
-                                        variant: 'destructive',
-                                        title: 'No AI Suggestion',
-                                        description: 'AI analysis did not provide a specific department suggestion for this report.',
-                                      });
-                                    }
-                                  }}
-                                  disabled={!canQuickAssign}
-                                >
-                                  <Sparkles className="mr-2 h-4 w-4" />
-                                  Quick Assign (AI)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={(event) => event.preventDefault()}
-                                  onClick={() => handleUpdateStatus(report, 'Resolved')}
-                                  disabled={!canResolve}
-                                >
-                                  Mark as Resolved
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

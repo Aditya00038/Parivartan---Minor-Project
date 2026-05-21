@@ -16,12 +16,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import { MapPin, User, Calendar, Bot, Loader2, Shield, AlertTriangle, Sparkles } from 'lucide-react';
+import { MapPin, User, Calendar, Bot, Loader2, Shield, AlertTriangle, Sparkles, UserCheck, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useAuth, useCollection, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import { collection, doc, DocumentData, DocumentReference, query, Query, updateDoc, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
-import type { AIAnalysis, Report, ReportStatus, User as WorkerUser } from '@/lib/types';
+import type { AIAnalysis, Report, ReportStatus, User as WorkerUser, ActionLogEntry } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
@@ -102,6 +102,8 @@ export default function SmcComplaintDetailPage() {
   const [isSummarizing, setIsSummarizing] = useState(false);
     const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [showContractorList, setShowContractorList] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const reportRef = useMemoFirebase(() => {
     if (!firestore || !params.id) return null;
@@ -163,7 +165,13 @@ export default function SmcComplaintDetailPage() {
                 : inferDepartmentFromCategory(report.category, report.aiAnalysis?.suggestedDepartment))
         : 'Engineering';
 
-    const filteredWorkers = workers.filter((worker) => {
+    const definedCategories = ['pothole', 'crack', 'surface failure', 'streetlight issue'];
+    const isDefinedCategory = report ? definedCategories.includes((report.category || '').toLowerCase()) : false;
+    
+    const effectivePriority = report ? (report.priority || report.aiAnalysis?.suggestedPriority || 'Medium') : 'Medium';
+    const isHighOrCritical = effectivePriority === 'High' || effectivePriority === 'Critical';
+
+    const filteredWorkers = (workers || []).filter((worker) => {
         if (!effectiveDepartment) return true;
         return worker.department === effectiveDepartment;
     });
@@ -260,7 +268,7 @@ export default function SmcComplaintDetailPage() {
     try {
       const hasStatusChanged = report.status !== values.status;
 
-      const selectedWorker = workers.find(w => w.name === values.assignedContractor);
+      const selectedWorker = (workers || []).find(w => w.name === values.assignedContractor);
       const updatePayload: Record<string, unknown> = {
         remarks: values.remarks,
         department: values.department,
@@ -313,6 +321,60 @@ export default function SmcComplaintDetailPage() {
       setIsSubmitting(false);
     }
   }
+
+  async function handleDirectAssign(worker: WorkerUser) {
+    if (!reportRef || !report) return;
+
+    setIsSubmitting(true);
+    try {
+      const updatePayload: Record<string, unknown> = {
+        assignedContractor: worker.name,
+        assignedWorkerId: worker.id,
+        status: 'Assigned',
+        workflowStage: 'assigned_worker',
+      };
+
+      const newLog: ActionLogEntry = {
+        status: 'Assigned',
+        timestamp: new Date().toISOString(),
+        actor: 'Official',
+        actorName: user?.displayName || 'SMC Officer',
+        notes: `Assigned task to contractor: ${worker.name}`,
+      };
+      updatePayload.actionLog = [...(report.actionLog || []), newLog];
+
+      const headers = await buildAuthHeaders(auth, { 'Content-Type': 'application/json' });
+      const response = await fetch(`/api/smc/complaints/${report.id}/resolve`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          newStatus: 'Assigned',
+          remarks: `Assigned task to contractor: ${worker.name}`,
+          updatePayload,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign contractor.');
+      }
+
+      toast({
+        title: 'Contractor Assigned',
+        description: `Successfully assigned this task to ${worker.name}.`,
+      });
+      setShowContractorList(false);
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        variant: 'destructive',
+        title: 'Assignment Failed',
+        description: e.message || 'Something went wrong when trying to assign the contractor.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
   
   if (isLoading) {
     return (
@@ -357,7 +419,143 @@ export default function SmcComplaintDetailPage() {
                     <Image src={report.imageUrl} alt={report.id} width={800} height={600} className="rounded-lg w-full object-cover" />
                 </CardContent>
             </Card>
-            
+
+            {/* Worker Work Proof Section */}
+            {(report.beforeWorkMediaUrl || report.afterWorkMediaUrl || report.afterImageUrl) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Worker Work Proof & Progress</CardTitle>
+                  <CardDescription>
+                    Review the visual evidence submitted by the field worker before and after the completion of the work.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Before Work */}
+                    <div className="space-y-3 rounded-xl border p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Before Work Proof</span>
+                        {report.beforeWorkUploadedAt && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(report.beforeWorkUploadedAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      {report.beforeWorkMediaUrl ? (
+                        report.beforeWorkMediaType === 'video' ? (
+                          <video
+                            src={report.beforeWorkMediaUrl}
+                            controls
+                            className="rounded-lg w-full h-48 object-cover border"
+                          />
+                        ) : (
+                          <img
+                            src={report.beforeWorkMediaUrl}
+                            alt="Before Work Proof"
+                            className="rounded-lg w-full h-48 object-cover border"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-48 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground italic">
+                          No before-work photo uploaded
+                        </div>
+                      )}
+                      {report.beforeWorkNotes && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                          <strong>Worker Note:</strong> "{report.beforeWorkNotes}"
+                        </p>
+                      )}
+                    </div>
+
+                    {/* After Work */}
+                    <div className="space-y-3 rounded-xl border p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">After Work Proof</span>
+                        {report.afterWorkUploadedAt && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(report.afterWorkUploadedAt).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      {(report.afterWorkMediaUrl || report.afterImageUrl) ? (
+                        (report.afterWorkMediaType === 'video') ? (
+                          <video
+                            src={report.afterWorkMediaUrl}
+                            controls
+                            className="rounded-lg w-full h-48 object-cover border"
+                          />
+                        ) : (
+                          <img
+                            src={report.afterWorkMediaUrl || report.afterImageUrl}
+                            alt="After Work Proof"
+                            className="rounded-lg w-full h-48 object-cover border"
+                          />
+                        )
+                      ) : (
+                        <div className="flex h-48 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground italic">
+                          Work in progress
+                        </div>
+                      )}
+                      {report.afterWorkNotes && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                          <strong>Worker Note:</strong> "{report.afterWorkNotes}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Citizen Feedback Section */}
+            {(report.citizenRating !== undefined || report.citizenFeedback) && (
+              <Card className="border-emerald-200 bg-emerald-50/20 dark:border-emerald-950 dark:bg-emerald-950/10">
+                <CardHeader>
+                  <CardTitle className="text-emerald-800 dark:text-emerald-300">Citizen Verification & Feedback</CardTitle>
+                  <CardDescription>
+                    Feedback and quality rating provided by the reporting citizen after work resolution.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Rating:</span>
+                    {report.citizenRating ? (
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <svg
+                            key={i}
+                            className={`h-5 w-5 ${
+                              i < (report.citizenRating ?? 0)
+                                ? 'text-amber-400 fill-amber-400'
+                                : 'text-slate-300 fill-slate-300'
+                            }`}
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                        <span className="ml-1 text-sm font-bold text-slate-800 dark:text-slate-100">
+                          {report.citizenRating} / 5
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm italic text-muted-foreground">Not rated yet</span>
+                    )}
+                  </div>
+
+                  {report.citizenFeedback && (
+                    <div className="rounded-lg border border-emerald-100 bg-white p-3 dark:border-emerald-900 dark:bg-slate-950">
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Citizen Feedback Comment</p>
+                      <p className="text-sm text-slate-800 dark:text-slate-200 italic">
+                        "{report.citizenFeedback}"
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle>Action Log</CardTitle>
@@ -484,203 +682,135 @@ export default function SmcComplaintDetailPage() {
                 </CardContent>
             </Card>
             
-            <Card>
+            {isDefinedCategory && isHighOrCritical ? (
+              <Card className="border-red-100 bg-red-50/10 dark:border-red-950 dark:bg-red-950/5">
                 <CardHeader>
-                    <CardTitle>Officer Control Panel</CardTitle>
-                                        <CardDescription>Auto-assign by category first, then adjust manually if needed.</CardDescription>
+                  <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-300">
+                    <Shield className="h-5 w-5 text-red-600 dark:text-red-400 animate-pulse" />
+                    High Priority Road/Infra Allocation
+                  </CardTitle>
+                  <CardDescription>
+                    This is a High Priority Road/Infrastructure issue that requires explicit administrator assignment.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                                                        <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
-                                                                <p className="text-sm">
-                                                                    <span className="font-semibold">Problem Category:</span> {report.category}
-                                                                </p>
-                                                                <p className="text-xs text-muted-foreground">
-                                                                    Showing category-wise workers for <span className="font-medium">{effectiveDepartment}</span>.
-                                                                </p>
-                                                                <Button
-                                                                    type="button"
-                                                                    onClick={handleAutoAssign}
-                                                                    disabled={isAutoAssigning || isSubmitting || isSummarizing}
-                                                                    className="w-full"
-                                                                >
-                                                                    {isAutoAssigning ? <><Loader2 className="animate-spin mr-2" />Auto Assigning...</> : 'Auto Assign Worker'}
-                                                                </Button>
-                                                        </div>
+                <CardContent className="space-y-6">
+                  {report.assignedContractor ? (
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-4 dark:border-emerald-950 dark:bg-emerald-950/10 space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold">
+                        <UserCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        Contractor Assigned
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <p className="text-slate-800 dark:text-slate-200">
+                          <span className="font-semibold text-muted-foreground mr-1">Name:</span> {report.assignedContractor}
+                        </p>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs">
+                          <span className="font-semibold text-muted-foreground mr-1">Worker ID:</span> {report.assignedWorkerId || 'N/A'}
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => setShowContractorList(!showContractorList)}
+                        className="w-full h-10 border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900 dark:border-slate-800 dark:text-slate-200 font-medium"
+                        variant="outline"
+                        disabled={isSubmitting}
+                      >
+                        Reassign Contractor
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-red-200 bg-white p-4 dark:border-red-900 dark:bg-slate-950 space-y-4 text-center">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        No contractor has been allocated to this issue yet. Please select an available contractor to execute this work.
+                      </p>
+                      <Button 
+                        onClick={() => setShowContractorList(!showContractorList)}
+                        className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm transition-all"
+                        disabled={isSubmitting}
+                      >
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        Assign Contractor
+                      </Button>
+                    </div>
+                  )}
 
-                            <FormField
-                                control={form.control}
-                                name="status"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Update Status</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Set a new status..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {officerActionableStatuses.map((status) => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-
-                             <FormField
-                                control={form.control}
-                                name="department"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="flex items-center gap-2">Assign Department {(report?.aiAnalysis?.suggestedDepartment && (!report.department || report.department === 'Unassigned')) && <Sparkles className="h-4 w-4 text-accent" />}</FormLabel>
-                                    <Select onValueChange={(value) => {
-                                        field.onChange(value);
-                                        // Clear contractor when department changes
-                                        form.setValue('assignedContractor', '');
-                                    }} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a department..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Unassigned">Unassigned</SelectItem>
-                                        {departments.map((dept) => (<SelectItem key={dept} value={dept}>{dept}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-
-                             <FormField
-                                control={form.control}
-                                name="priority"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="flex items-center gap-2">Set Priority {(report?.aiAnalysis?.suggestedPriority && !report.priority) && <Sparkles className="h-4 w-4 text-accent" />}</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Set priority level..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {priorityLevels.map((level) => (<SelectItem key={level} value={level}>{level}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            
-                            <FormField
-                                control={form.control}
-                                name="assignedContractor"
-                                render={({ field }) => {
-                                const workersToShow = recommendedWorkers;
-                                return (
-                                <FormItem>
-                                    <FormLabel>Manual Worker Override</FormLabel>
-                                    <Select 
-                                        onValueChange={field.onChange} 
-                                        value={field.value}
-                                        disabled={watchedStatus !== 'Assigned' && watchedStatus !== 'In Progress'}
-                                    >
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Select a worker..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {workersToShow.length === 0 ? (
-                                            <SelectItem value="no-worker" disabled>No workers match this category/department</SelectItem>
-                                        ) : (
-                                            workersToShow.map((worker) => (
-                                                <SelectItem key={worker.id} value={worker.name}>
-                                                    {worker.name}
-                                                    <span className="text-xs text-muted-foreground ml-2">
-                                                      ({worker.designation || worker.department || 'Worker'})
-                                                    </span>
-                                                </SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                        {workersToShow.length > 0
-                                          ? `${workersToShow.length} category-wise workers shown for ${effectiveDepartment}`
-                                          : `No matching workers found for ${effectiveDepartment}`}
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                                )}}
-                            />
-
-                             <FormField
-                                control={form.control}
-                                name="causeTag"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Tag Cause</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger><SelectValue placeholder="Tag the likely cause..." /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {causeTags.map((tag) => (<SelectItem key={tag} value={tag}>{tag}</SelectItem>))}
-                                    </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                             <FormField
-                                control={form.control}
-                                name="estimatedResolutionTime"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Est. Resolution Time</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="e.g., 48 Hours, 7 Days" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                            <FormField
-                                control={form.control}
-                                name="afterImageUrl"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Resolution Photo URL</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="https://.../after-photo.jpg" {...field} />
-                                    </FormControl>
-                                     <FormDescription>
-                                        Add a URL for the photo showing the completed work.
-                                    </FormDescription>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="remarks"
-                                render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Add Remarks</FormLabel>
-                                    <FormControl>
-                                    <Textarea placeholder="Add internal notes or reasons for status change..." {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                                )}
-                            />
-                            <Button type="submit" className="w-full" disabled={isSubmitting || isSummarizing}>
-                                {isSubmitting ? <><Loader2 className="animate-spin mr-2" />Updating...</> : 'Update Report'}
-                            </Button>
-                        </form>
-                    </Form>
+                  {/* Contractor Selection Form */}
+                  {showContractorList && (
+                    <div className="rounded-xl border bg-white p-4 dark:bg-slate-950 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Search All Contractors</label>
+                        <Input
+                          placeholder="Type contractor name..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-10 rounded-lg"
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                        {(() => {
+                          const queryFiltered = (workers || []).filter(w => 
+                            (w.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            (w.department || '').toLowerCase().includes(searchQuery.toLowerCase())
+                          );
+                          if (queryFiltered.length === 0) {
+                            return <p className="text-xs text-muted-foreground text-center py-6 italic">No matching contractors found.</p>;
+                          }
+                          return queryFiltered.map((worker) => (
+                            <button
+                              key={worker.id}
+                              onClick={() => handleDirectAssign(worker)}
+                              disabled={isSubmitting}
+                              className="w-full flex items-center justify-between p-3 rounded-lg border bg-slate-50/50 hover:bg-slate-50 text-left transition-all hover:border-indigo-400 dark:bg-slate-900/50 dark:hover:bg-slate-900"
+                            >
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{worker.name}</p>
+                                <p className="text-xs text-muted-foreground">{worker.designation || worker.department || 'Field Contractor'}</p>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-slate-400 animate-pulse" />
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
-            </Card>
+              </Card>
+            ) : (
+              <Card className="border-slate-100 bg-slate-50/20 dark:border-slate-800 dark:bg-slate-900/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-300">
+                    <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    Worker Managed Dispatch
+                  </CardTitle>
+                  <CardDescription>
+                    Automated direct workflow for Low/Medium priority and standardized issues.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/10 p-4 dark:border-indigo-950 dark:bg-indigo-950/5">
+                    <Bot className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">AI Workflow System</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        This is a <strong className="font-semibold text-indigo-700 dark:text-indigo-400">{effectivePriority}</strong> priority task. 
+                        To ensure maximum operational speed and bypass red tape, the system bypasses manual administrative assignment. 
+                        It is directly dispatched to and resolved by Pune Municipal Corporation workers on the ground.
+                      </p>
+                    </div>
+                  </div>
+                  {report.assignedContractor && (
+                    <div className="rounded-xl border bg-white p-4 dark:bg-slate-950 text-sm space-y-1.5">
+                      <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-1">Assigned Task Owner</p>
+                      <p className="text-slate-800 dark:text-slate-200">
+                        <span className="font-semibold">Worker in Charge:</span> {report.assignedContractor}
+                      </p>
+                      <p className="text-slate-600 dark:text-slate-400 text-xs">
+                        <span className="font-semibold">Status:</span> {report.status}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
                 <CardHeader><CardTitle>Report Details</CardTitle></CardHeader>

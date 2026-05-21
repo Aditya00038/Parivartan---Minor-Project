@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
-  Plus, Trash2, ShieldCheck, Hospital, Flame, Toilet, Building2,
+  Plus, Trash2, ShieldCheck, Hospital, Flame, Toilet, Building2, AlertTriangle,
   type LucideIcon,
 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { collection, query, where } from 'firebase/firestore';
 import { useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import type { CivicService, CivicServiceCategory } from '@/lib/types';
+import type { CivicService, CivicServiceCategory, Report } from '@/lib/types';
 
 // ─── Category config ──────────────────────────────────────────────────────────
 
@@ -23,20 +23,21 @@ type CategoryConfig = {
   iconColor: string;   // hex for inline SVG
 };
 
-export const CATEGORIES: Record<CivicServiceCategory, CategoryConfig> = {
-  garbage:   { label: 'Garbage Bins',    Icon: Trash2,      pinBg: '#16a34a', iconColor: '#fff', chipActive: 'bg-green-600 text-white border-green-600',   chipInactive: 'bg-white text-slate-500 border-slate-200' },
-  police:    { label: 'Police',          Icon: ShieldCheck, pinBg: '#2563eb', iconColor: '#fff', chipActive: 'bg-blue-600 text-white border-blue-600',     chipInactive: 'bg-white text-slate-500 border-slate-200' },
-  hospital:  { label: 'Hospitals',       Icon: Hospital,    pinBg: '#dc2626', iconColor: '#fff', chipActive: 'bg-red-600 text-white border-red-600',       chipInactive: 'bg-white text-slate-500 border-slate-200' },
-  fire:      { label: 'Fire Station',    Icon: Flame,       pinBg: '#ea580c', iconColor: '#fff', chipActive: 'bg-orange-500 text-white border-orange-500', chipInactive: 'bg-white text-slate-500 border-slate-200' },
-  toilet:    { label: 'Toilets',         Icon: Toilet,      pinBg: '#7c3aed', iconColor: '#fff', chipActive: 'bg-violet-600 text-white border-violet-600', chipInactive: 'bg-white text-slate-500 border-slate-200' },
-  municipal: { label: 'Municipal Office',Icon: Building2,   pinBg: '#0d9488', iconColor: '#fff', chipActive: 'bg-teal-600 text-white border-teal-600',     chipInactive: 'bg-white text-slate-500 border-slate-200' },
+export const CATEGORIES: Record<CivicServiceCategory | 'garbage_problem', CategoryConfig> = {
+  garbage:         { label: 'Garbage Bins',      Icon: Trash2,         pinBg: '#16a34a', iconColor: '#fff', chipActive: 'bg-green-600 text-white border-green-600',   chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  garbage_problem: { label: 'Garbage Problems',  Icon: AlertTriangle,  pinBg: '#ef4444', iconColor: '#fff', chipActive: 'bg-red-600 text-white border-red-600',       chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  police:          { label: 'Police',            Icon: ShieldCheck,    pinBg: '#2563eb', iconColor: '#fff', chipActive: 'bg-blue-600 text-white border-blue-600',     chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  hospital:        { label: 'Hospitals',         Icon: Hospital,       pinBg: '#dc2626', iconColor: '#fff', chipActive: 'bg-red-600 text-white border-red-600',       chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  fire:            { label: 'Fire Station',      Icon: Flame,          pinBg: '#ea580c', iconColor: '#fff', chipActive: 'bg-orange-500 text-white border-orange-500', chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  toilet:          { label: 'Toilets',           Icon: Toilet,         pinBg: '#7c3aed', iconColor: '#fff', chipActive: 'bg-violet-600 text-white border-violet-600', chipInactive: 'bg-white text-slate-500 border-slate-200' },
+  municipal:       { label: 'Municipal Office',  Icon: Building2,      pinBg: '#0d9488', iconColor: '#fff', chipActive: 'bg-teal-600 text-white border-teal-600',     chipInactive: 'bg-white text-slate-500 border-slate-200' },
 };
 
-const ALL_CATS = Object.keys(CATEGORIES) as CivicServiceCategory[];
+const ALL_CATS = Object.keys(CATEGORIES) as (CivicServiceCategory | 'garbage_problem')[];
 
 // ─── Map marker: teardrop pin with inline SVG icon ────────────────────────────
 
-function makeMarkerIcon(category: CivicServiceCategory): L.DivIcon {
+function makeMarkerIcon(category: CivicServiceCategory | 'garbage_problem'): L.DivIcon {
   const { Icon, pinBg, iconColor } = CATEGORIES[category];
   // Render the Lucide icon to an SVG string (16×16, no stroke-width override needed)
   const svgStr = renderToStaticMarkup(
@@ -76,7 +77,15 @@ function makeMarkerIcon(category: CivicServiceCategory): L.DivIcon {
 // ─── Popup HTML ───────────────────────────────────────────────────────────────
 
 function buildPopupHtml(
-  service: CivicService,
+  service: {
+    id: string;
+    category: CivicServiceCategory | 'garbage_problem';
+    name: string;
+    location: string;
+    latitude: number;
+    longitude: number;
+    imageUrl?: string;
+  },
   userLat: number | null,
   userLng: number | null
 ): string {
@@ -140,16 +149,31 @@ export default function NearbyServicesMap() {
 
   const { data: services } = useCollection<CivicService>(servicesQuery);
 
+  const reportsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(
+      collection(firestore, 'reports'),
+      where('category', '==', 'Garbage/Debris')
+    );
+  }, [firestore]);
+
+  const { data: rawReports } = useCollection<Report>(reportsQuery);
+
+  const activeReports = useMemo(() => {
+    if (!rawReports) return [];
+    return rawReports.filter((r: Report) => r.latitude && r.longitude && !['Resolved', 'Rejected'].includes(r.status));
+  }, [rawReports]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
 
-  const [activeFilters, setActiveFilters] = useState<CivicServiceCategory[]>([...ALL_CATS]);
+  const [activeFilters, setActiveFilters] = useState<(CivicServiceCategory | 'garbage_problem')[]>([...ALL_CATS]);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
-  const [counts, setCounts] = useState<Partial<Record<CivicServiceCategory, number>>>({});
+  const [counts, setCounts] = useState<Partial<Record<CivicServiceCategory | 'garbage_problem', number>>>({});
 
   // ── Init map ──────────────────────────────────────────────────────────────
 
@@ -231,24 +255,57 @@ export default function NearbyServicesMap() {
     if (!group) return;
     group.clearLayers();
 
-    const filtered = (services ?? []).filter(s => activeFilters.includes(s.category));
-    const c: Partial<Record<CivicServiceCategory, number>> = {};
-    filtered.forEach(s => { c[s.category] = (c[s.category] ?? 0) + 1; });
+    // Map approved civic services
+    const filteredServices = (services ?? [])
+      .filter(s => activeFilters.includes(s.category as any))
+      .map(s => ({
+        id: s.id,
+        category: s.category as CivicServiceCategory | 'garbage_problem',
+        name: s.name,
+        location: s.location,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        imageUrl: s.imageUrl,
+      }));
+
+    // Map active citizen garbage reports
+    const filteredReports = activeFilters.includes('garbage_problem')
+      ? activeReports.map((r: Report) => ({
+          id: r.id,
+          category: 'garbage_problem' as const,
+          name: `Problem: ${r.description.slice(0, 40)}${r.description.length > 40 ? '...' : ''}`,
+          location: r.location,
+          latitude: r.latitude!,
+          longitude: r.longitude!,
+          imageUrl: r.imageUrl,
+        }))
+      : [];
+
+    const combined = [...filteredServices, ...filteredReports];
+
+    const c: Partial<Record<CivicServiceCategory | 'garbage_problem', number>> = {};
+    // Calculate counts for approved services
+    (services ?? []).forEach(s => {
+      c[s.category] = (c[s.category] ?? 0) + 1;
+    });
+    // Add count for active garbage reports
+    c['garbage_problem'] = activeReports.length;
+
     setCounts(c);
 
-    filtered.forEach(service => {
-      L.marker([service.latitude, service.longitude], { icon: makeMarkerIcon(service.category) })
+    combined.forEach(item => {
+      L.marker([item.latitude, item.longitude], { icon: makeMarkerIcon(item.category) })
         .bindPopup(
-          buildPopupHtml(service, userPos?.lat ?? null, userPos?.lng ?? null),
+          buildPopupHtml(item, userPos?.lat ?? null, userPos?.lng ?? null),
           { className: 'nearby-popup', maxWidth: 240 }
         )
         .addTo(group);
     });
-  }, [services, activeFilters, userPos]);
+  }, [services, activeReports, activeFilters, userPos]);
 
   // ── Filters ───────────────────────────────────────────────────────────────
 
-  const toggleFilter = (cat: CivicServiceCategory) =>
+  const toggleFilter = (cat: CivicServiceCategory | 'garbage_problem') =>
     setActiveFilters(prev =>
       prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
     );
