@@ -17,9 +17,35 @@ import { useToast } from '@/hooks/use-toast';
 import { buildAuthHeaders } from '@/lib/client-auth';
 import { AlertCircle } from 'lucide-react';
 
-const DEPARTMENT_OPTIONS = ['Engineering', 'Drainage', 'Electricity', 'Sanitation', 'Roads'];
-const SKILL_OPTIONS = ['Garbage', 'Road Repair', 'Electrical'];
-const DESIGNATION_OPTIONS = ['Sanitation Worker', 'Technician', 'Helper'];
+const DEPARTMENT_OPTIONS = [
+  'Road Maintenance Department',
+  'Solid Waste Management Department',
+  'Water & Drainage Department',
+  'Electrical Department',
+  'Construction & Public Works Department'
+];
+
+const SKILL_OPTIONS = [
+  'Road Repair',
+  'Asphalt Work',
+  'Sanitation',
+  'Garbage Truck Operation',
+  'Drainage Cleaning',
+  'Pipeline Work',
+  'Electrical Maintenance',
+  'Civil Works'
+];
+
+const DESIGNATION_OPTIONS = [
+  'Road Repair Worker',
+  'Asphalt Worker',
+  'Sanitation Crew',
+  'Garbage Truck Driver',
+  'Drainage Cleaner',
+  'Pipeline Technician',
+  'Electrical Technician',
+  'Civil Work Builder'
+];
 
 interface ContractorStats {
   total: number;
@@ -45,7 +71,7 @@ export default function SmcContractsPage() {
     name: '',
     phoneNumber: '',
     email: '',
-    department: 'Engineering',
+    department: 'Road Maintenance Department',
     wardArea: '',
   });
   const [isCreatingWorker, setIsCreatingWorker] = useState(false);
@@ -54,8 +80,8 @@ export default function SmcContractsPage() {
     fullName: '',
     phoneNumber: '',
     email: '',
-    department: 'Engineering',
-    designation: 'Helper',
+    department: 'Road Maintenance Department',
+    designation: 'Road Repair Worker',
     skillType: 'Road Repair',
     assignedContractor: '',
     wardArea: '',
@@ -172,7 +198,7 @@ export default function SmcContractsPage() {
         name: '',
         phoneNumber: '',
         email: '',
-        department: 'Engineering',
+        department: 'Road Maintenance Department',
         wardArea: '',
       });
     } catch (error) {
@@ -241,8 +267,8 @@ export default function SmcContractsPage() {
         fullName: '',
         phoneNumber: '',
         email: '',
-        department: 'Engineering',
-        designation: 'Helper',
+        department: 'Road Maintenance Department',
+        designation: 'Road Repair Worker',
         skillType: 'Road Repair',
         assignedContractor: '',
         wardArea: '',
