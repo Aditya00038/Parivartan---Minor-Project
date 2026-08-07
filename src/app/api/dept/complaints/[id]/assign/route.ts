@@ -17,7 +17,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
     const { firestore } = await getFirebaseAdmin();
 
-    await firestore.runTransaction(async (tx) => {
+    await firestore.runTransaction(async (tx: any) => {
       const reportRef = firestore.collection('reports').doc(reportId);
       const workerRef = firestore.collection('users').doc(workerId);
 

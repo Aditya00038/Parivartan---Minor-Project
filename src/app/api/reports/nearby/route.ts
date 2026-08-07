@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       .limit(500)
       .get();
 
-    const allReports = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    const allReports = snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as any[];
 
     // ── Nearby / duplicate detection ──────────────────────────────────────
     let nearby: any[] = [];

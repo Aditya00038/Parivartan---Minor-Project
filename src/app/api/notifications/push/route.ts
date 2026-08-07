@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         .collection('users')
         .where('pushNotificationsEnabled', '==', true)
         .get();
-      usersSnap.forEach((doc) => {
+      usersSnap.forEach((doc: any) => {
         const tokens = (doc.data().fcmTokens ?? []) as string[];
         tokenList.push(...tokens);
       });
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
         .get();
 
       const batch = firestore.batch();
-      usersWithStale.forEach((doc) => {
+      usersWithStale.forEach((doc: any) => {
         const existing = (doc.data().fcmTokens ?? []) as string[];
         const cleaned = existing.filter((t) => !staleSet.has(t));
         batch.update(doc.ref, { fcmTokens: cleaned });
