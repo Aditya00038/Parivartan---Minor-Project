@@ -4,8 +4,40 @@ import { sendSMS } from '@/lib/twilio';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 import type { Firestore } from 'firebase-admin/firestore';
 
-const DEPARTMENTS = ['Engineering', 'Drainage', 'Electricity', 'Sanitation', 'Roads'];
-const SKILL_TYPES = ['Garbage', 'Road Repair', 'Electrical'];
+import { departments } from '@/lib/constants';
+
+const ACCEPTED_DEPARTMENTS = Array.from(new Set([
+  ...departments,
+  'Engineering',
+  'Sanitation',
+  'Electrical',
+  'Water Supply',
+  'Parks & Environment',
+  'Traffic & Roads',
+  'Public Works',
+  'Road Maintenance Department',
+  'Solid Waste Management Department',
+  'Water & Drainage Department',
+  'Electrical Department',
+  'Construction & Public Works Department',
+  'Drainage',
+  'Electricity',
+  'Roads',
+]));
+
+const ACCEPTED_SKILLS = [
+  'Garbage',
+  'Road Repair',
+  'Electrical',
+  'Asphalt Work',
+  'Sanitation',
+  'Garbage Truck Operation',
+  'Drainage Cleaning',
+  'Pipeline Work',
+  'Electrical Maintenance',
+  'Civil Works',
+  'General Maintenance',
+];
 
 function normalizeSegment(value: string) {
   return value.trim().replace(/\s+/g, ' ');
@@ -95,11 +127,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!DEPARTMENTS.includes(department)) {
+    if (!ACCEPTED_DEPARTMENTS.includes(department)) {
       return NextResponse.json({ error: 'Invalid department.' }, { status: 400 });
     }
 
-    if (!SKILL_TYPES.includes(skillType)) {
+    if (!ACCEPTED_SKILLS.includes(skillType)) {
       return NextResponse.json({ error: 'Invalid skill type.' }, { status: 400 });
     }
 

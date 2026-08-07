@@ -2,7 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/firebase/server';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 
-const DEPARTMENTS = ['Engineering', 'Drainage', 'Electricity', 'Sanitation', 'Roads'];
+import { departments } from '@/lib/constants';
+
+const ACCEPTED_DEPARTMENTS = Array.from(new Set([
+  ...departments,
+  'Engineering',
+  'Sanitation',
+  'Electrical',
+  'Water Supply',
+  'Parks & Environment',
+  'Traffic & Roads',
+  'Public Works',
+  'Road Maintenance Department',
+  'Solid Waste Management Department',
+  'Water & Drainage Department',
+  'Electrical Department',
+  'Construction & Public Works Department',
+  'Drainage',
+  'Electricity',
+  'Roads',
+]));
 
 function normalizeSegment(value: string) {
   return value.trim().replace(/\s+/g, ' ');
@@ -24,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required contractor fields.' }, { status: 400 });
     }
 
-    if (!DEPARTMENTS.includes(department)) {
+    if (!ACCEPTED_DEPARTMENTS.includes(department)) {
       return NextResponse.json({ error: 'Invalid department.' }, { status: 400 });
     }
 
