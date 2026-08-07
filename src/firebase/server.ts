@@ -11,16 +11,20 @@ const runtimeProjectId =
   process.env.GCLOUD_PROJECT ||
   firebaseConfig.projectId;
 
-// This is a temporary solution for service account credentials.
-// In a real production environment, you should use environment variables
-// or another secure method to store these credentials.
+function formatPrivateKey(key: string | undefined): string | undefined {
+  if (!key) return undefined;
+  let val = key.trim();
+  if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+    val = val.substring(1, val.length - 1);
+  }
+  return val.replace(/\\n/g, '\n').trim();
+}
+
 const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
   : {
     projectId: runtimeProjectId,
-    // You would typically not hard-code a private key.
-    // This is a placeholder.
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
