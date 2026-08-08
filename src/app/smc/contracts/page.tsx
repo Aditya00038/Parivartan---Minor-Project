@@ -33,10 +33,201 @@ const DEPARTMENT_OPTIONS = [
   'Solid Waste Management Department',
   'Water & Drainage Department',
   'Electrical Department',
-  'Construction & Public Works Department'
+  'Construction & Public Works Department',
+  'Parks & Environment',
+  'Traffic & Roads',
+  'Public Works',
 ];
 
-const SKILL_OPTIONS = [
+const DEPARTMENT_METADATA: Record<
+  string,
+  { roles: string[]; skills: string[] }
+> = {
+  'Road Maintenance Department': {
+    roles: [
+      'Road Repair Worker',
+      'Asphalt Worker',
+      'Road Repair Technician',
+      'Civil Work Builder',
+      'Junior Engineer',
+      'Maintenance Technician',
+    ],
+    skills: [
+      'Road Repair',
+      'Asphalt Work',
+      'Civil Works',
+      'General Maintenance',
+    ],
+  },
+  'Engineering': {
+    roles: [
+      'Road Repair Worker',
+      'Asphalt Worker',
+      'Road Repair Technician',
+      'Civil Engineer',
+      'Structural Engineer',
+      'Junior Engineer',
+      'Maintenance Technician',
+    ],
+    skills: [
+      'Road Repair',
+      'Asphalt Work',
+      'Civil Works',
+      'General Maintenance',
+    ],
+  },
+  'Solid Waste Management Department': {
+    roles: [
+      'Sanitation Crew',
+      'Garbage Truck Driver',
+      'Sanitation Worker',
+      'Sweeper',
+      'Garbage Collector',
+      'Waste Segregation Staff',
+      'Supervisor',
+    ],
+    skills: [
+      'Sanitation',
+      'Garbage Truck Operation',
+      'Garbage',
+      'General Maintenance',
+    ],
+  },
+  'Sanitation': {
+    roles: [
+      'Sanitation Crew',
+      'Garbage Truck Driver',
+      'Sanitation Worker',
+      'Sweeper',
+      'Garbage Collector',
+      'Waste Segregation Staff',
+      'Supervisor',
+    ],
+    skills: [
+      'Sanitation',
+      'Garbage Truck Operation',
+      'Garbage',
+      'General Maintenance',
+    ],
+  },
+  'Water & Drainage Department': {
+    roles: [
+      'Drainage Cleaner',
+      'Pipeline Technician',
+      'Plumber',
+      'Water Supply Engineer',
+      'Pump Operator',
+      'Maintenance Worker',
+    ],
+    skills: [
+      'Drainage Cleaning',
+      'Pipeline Work',
+      'General Maintenance',
+    ],
+  },
+  'Water Supply': {
+    roles: [
+      'Drainage Cleaner',
+      'Pipeline Technician',
+      'Plumber',
+      'Water Supply Engineer',
+      'Pump Operator',
+      'Maintenance Worker',
+    ],
+    skills: [
+      'Drainage Cleaning',
+      'Pipeline Work',
+      'General Maintenance',
+    ],
+  },
+  'Electrical Department': {
+    roles: [
+      'Electrical Technician',
+      'Electrician',
+      'Street Light Technician',
+      'Line Technician',
+      'Electrical Engineer',
+      'Maintenance Staff',
+    ],
+    skills: [
+      'Electrical Maintenance',
+      'Electrical',
+      'General Maintenance',
+    ],
+  },
+  'Electrical': {
+    roles: [
+      'Electrical Technician',
+      'Electrician',
+      'Street Light Technician',
+      'Line Technician',
+      'Electrical Engineer',
+      'Maintenance Staff',
+    ],
+    skills: [
+      'Electrical Maintenance',
+      'Electrical',
+      'General Maintenance',
+    ],
+  },
+  'Construction & Public Works Department': {
+    roles: [
+      'Civil Work Builder',
+      'Project Manager',
+      'Supervisor',
+      'Technician',
+      'Field Worker',
+    ],
+    skills: [
+      'Civil Works',
+      'Road Repair',
+      'General Maintenance',
+    ],
+  },
+  'Public Works': {
+    roles: [
+      'Civil Work Builder',
+      'Project Manager',
+      'Supervisor',
+      'Technician',
+      'Field Worker',
+    ],
+    skills: [
+      'Civil Works',
+      'Road Repair',
+      'General Maintenance',
+    ],
+  },
+  'Parks & Environment': {
+    roles: [
+      'Gardener',
+      'Tree Maintenance Worker',
+      'Park Supervisor',
+      'Environmental Engineer',
+      'Maintenance Worker',
+    ],
+    skills: [
+      'General Maintenance',
+      'Civil Works',
+    ],
+  },
+  'Traffic & Roads': {
+    roles: [
+      'Road Safety Officer',
+      'Signal Technician',
+      'Traffic Engineer',
+      'Field Worker',
+      'Road Repair Worker',
+    ],
+    skills: [
+      'Road Repair',
+      'Electrical Maintenance',
+      'General Maintenance',
+    ],
+  },
+};
+
+const DEFAULT_SKILL_OPTIONS = [
   'Road Repair',
   'Asphalt Work',
   'Sanitation',
@@ -44,10 +235,11 @@ const SKILL_OPTIONS = [
   'Drainage Cleaning',
   'Pipeline Work',
   'Electrical Maintenance',
-  'Civil Works'
+  'Civil Works',
+  'General Maintenance',
 ];
 
-const DESIGNATION_OPTIONS = [
+const DEFAULT_DESIGNATION_OPTIONS = [
   'Road Repair Worker',
   'Asphalt Worker',
   'Sanitation Crew',
@@ -55,7 +247,7 @@ const DESIGNATION_OPTIONS = [
   'Drainage Cleaner',
   'Pipeline Technician',
   'Electrical Technician',
-  'Civil Work Builder'
+  'Civil Work Builder',
 ];
 
 interface ContractorRecord {
@@ -166,6 +358,30 @@ export default function SmcContractsPage() {
     setNewWorker((previous) => ({ ...previous, [field]: value }));
   };
 
+  const availableRoles = useMemo(() => {
+    return DEPARTMENT_METADATA[newWorker.department]?.roles || DEFAULT_DESIGNATION_OPTIONS;
+  }, [newWorker.department]);
+
+  const availableSkills = useMemo(() => {
+    return DEPARTMENT_METADATA[newWorker.department]?.skills || DEFAULT_SKILL_OPTIONS;
+  }, [newWorker.department]);
+
+  const handleWorkerDepartmentChange = (department: string) => {
+    const meta = DEPARTMENT_METADATA[department];
+    const defaultRole = meta?.roles[0] || DEFAULT_DESIGNATION_OPTIONS[0];
+    const defaultSkill = meta?.skills[0] || DEFAULT_SKILL_OPTIONS[0];
+
+    const currentRoleValid = meta?.roles.includes(newWorker.designation);
+    const currentSkillValid = meta?.skills.includes(newWorker.skillType);
+
+    setNewWorker((previous) => ({
+      ...previous,
+      department,
+      designation: currentRoleValid ? previous.designation : defaultRole,
+      skillType: currentSkillValid ? previous.skillType : defaultSkill,
+    }));
+  };
+
   const handleConfirmAction = () => {
     setIsConfirmOpen(false);
     if (pendingAction === 'contractor') {
@@ -212,9 +428,6 @@ export default function SmcContractsPage() {
   };
 
   const handleCreateWorker = async () => {
-
-
-
     setIsCreatingWorker(true);
     try {
       const headers = await buildAuthHeaders(auth, { 'Content-Type': 'application/json' });
@@ -346,7 +559,7 @@ export default function SmcContractsPage() {
                 placeholder="Email (optional)"
               />
 
-              <Select value={newWorker.department} onValueChange={(value) => handleNewWorkerChange('department', value)}>
+              <Select value={newWorker.department} onValueChange={handleWorkerDepartmentChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
@@ -362,7 +575,7 @@ export default function SmcContractsPage() {
                   <SelectValue placeholder="Role / Designation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {DESIGNATION_OPTIONS.map((designation) => (
+                  {availableRoles.map((designation) => (
                     <SelectItem key={designation} value={designation}>{designation}</SelectItem>
                   ))}
                 </SelectContent>
@@ -373,7 +586,7 @@ export default function SmcContractsPage() {
                   <SelectValue placeholder="Skill Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SKILL_OPTIONS.map((skill) => (
+                  {availableSkills.map((skill) => (
                     <SelectItem key={skill} value={skill}>{skill}</SelectItem>
                   ))}
                 </SelectContent>
@@ -384,8 +597,8 @@ export default function SmcContractsPage() {
                 onValueChange={(value) => {
                   handleNewWorkerChange('assignedContractor', value);
                   const detectedDepartment = contractorDepartmentMap[value];
-                  if (detectedDepartment && DEPARTMENT_OPTIONS.includes(detectedDepartment)) {
-                    handleNewWorkerChange('department', detectedDepartment);
+                  if (detectedDepartment && (DEPARTMENT_OPTIONS.includes(detectedDepartment) || DEPARTMENT_METADATA[detectedDepartment])) {
+                    handleWorkerDepartmentChange(detectedDepartment);
                   }
                 }}
               >

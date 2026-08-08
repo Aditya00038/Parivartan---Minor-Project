@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     });
 
     // ── Fire push notification (fire-and-forget) ───────────────────────────
-    ;(async () => {
+    ; (async () => {
       try {
         const msg = STATUS_PUSH_MESSAGES[newStatus];
         if (!msg || !result.reportUserId) return;
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
             fcmOptions: { link: `/citizen/complaint/${reportId}` },
           },
           data: { url: `/citizen/complaint/${reportId}`, tag: `complaint-${reportId}` },
-        }).catch(() => {});
+        }).catch(() => { });
       } catch { /* non-fatal */ }
     })();
 

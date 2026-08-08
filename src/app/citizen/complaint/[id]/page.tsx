@@ -194,11 +194,11 @@ export default function ComplaintDetailPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">{report.description}</CardTitle>
-              <CardDescription className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1 text-sm text-muted-foreground">
                 <Badge variant="outline">{report.category}</Badge>
                 {report.department && <Badge variant="outline">{report.department}</Badge>}
                 {report.priority && <Badge variant="outline">{report.priority} Priority</Badge>}
-              </CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
@@ -285,11 +285,11 @@ export default function ComplaintDetailPage() {
                       {index < sortedActionLog.length - 1 && <div className="mt-1 w-px flex-1 bg-gray-200" />}
                     </div>
                     <div className="flex-1 pb-4">
-                      <p className="text-sm font-medium">
-                        {log.actorName}
-                        <span className="font-normal text-muted-foreground"> → </span>
+                      <div className="flex items-center gap-1.5 text-sm font-medium">
+                        <span>{log.actorName}</span>
+                        <span className="font-normal text-muted-foreground">→</span>
                         <Badge variant="outline" className="text-xs">{log.status}</Badge>
-                      </p>
+                      </div>
                       {log.notes && <p className="mt-0.5 text-xs text-muted-foreground italic">"{log.notes}"</p>}
                       <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />

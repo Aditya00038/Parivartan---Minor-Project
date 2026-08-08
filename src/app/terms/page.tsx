@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 
 export default function TermsOfServicePage() {
   const router = useRouter();
-  
+
   return (
     <div className="container mx-auto p-4 md:p-8">
       <Button variant="outline" onClick={() => router.back()} className="mb-4">
@@ -20,7 +20,7 @@ export default function TermsOfServicePage() {
         </CardHeader>
         <CardContent className="space-y-4 text-muted-foreground">
           <p>Last updated: {new Date().toLocaleDateString()}</p>
-          
+
           <h2 className="text-xl font-semibold text-foreground pt-4">1. Acceptance of Terms</h2>
           <p>
             By accessing and using the Parivartan platform ("Service"), you accept and agree to be bound by the terms and
@@ -41,7 +41,7 @@ export default function TermsOfServicePage() {
             non-exclusive, royalty-free license to use, reproduce, and display this content for the purpose of addressing the
             reported issue and for public accountability. You are solely responsible for the content you submit.
           </p>
-          
+
           <h2 className="text-xl font-semibold text-foreground pt-4">4. Disclaimers</h2>
           <p>
             The Service is provided on an "as is" and "as available" basis. SMC makes no warranty that the Service will meet

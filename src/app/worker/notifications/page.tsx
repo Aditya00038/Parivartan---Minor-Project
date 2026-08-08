@@ -58,11 +58,11 @@ export default function WorkerNotificationsPage() {
       <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-lg shadow-lg">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-          <Bell className="h-6 w-6" />
-          <div>
-            <h1 className="text-lg font-bold">Notifications</h1>
-            <p className="text-sm opacity-90">Updates from SMC</p>
-          </div>
+            <Bell className="h-6 w-6" />
+            <div>
+              <h1 className="text-lg font-bold">Notifications</h1>
+              <p className="text-sm opacity-90">Updates from SMC</p>
+            </div>
           </div>
           <Button
             variant="secondary"
@@ -97,9 +97,8 @@ export default function WorkerNotificationsPage() {
           return (
             <Card
               key={notification.id}
-              className={`hover:shadow-md transition-shadow ${
-                !notification.isRead ? 'border-amber-300 bg-amber-50/70' : ''
-              }`}
+              className={`hover:shadow-md transition-shadow ${!notification.isRead ? 'border-amber-300 bg-amber-50/70' : ''
+                }`}
             >
               <CardContent className="p-4">
                 <div className="flex gap-4">

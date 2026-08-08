@@ -106,10 +106,10 @@ export default function CitizenLoginPage() {
         </p>
         <div className="grid grid-cols-2 gap-4 w-full">
           {[
-            { icon: Camera,   label: 'AI-powered photo analysis' },
-            { icon: MapPin,   label: 'GPS-tagged reports'        },
-            { icon: Bell,     label: 'Real-time push updates'    },
-            { icon: Trophy,   label: 'Leaderboard'               },
+            { icon: Camera, label: 'AI-powered photo analysis' },
+            { icon: MapPin, label: 'GPS-tagged reports' },
+            { icon: Bell, label: 'Real-time push updates' },
+            { icon: Trophy, label: 'Leaderboard' },
           ].map(f => (
             <div key={f.label} className="flex items-center gap-2 bg-white/10 rounded-xl p-3 text-sm">
               <f.icon className="h-4 w-4 text-emerald-200 shrink-0" />

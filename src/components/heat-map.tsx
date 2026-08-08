@@ -109,21 +109,49 @@ interface ReportLocation {
   priority?: string; // Add priority
 }
 
+import { PUNE_ADMIN_WARDS, type PuneWard } from '@/lib/pune-wards';
+
+// Outer Pune Municipal Corporation & PMRDA administrative border including Alandi
+const PMC_OUTER_BOUNDARY: [number, number][] = [
+  [18.578, 73.765],
+  [18.630, 73.790],
+  [18.705, 73.865], // Alandi North-West / Dighi Road
+  [18.720, 73.910], // Alandi Devachi & Indrayani Ghat
+  [18.685, 73.945], // Charholi / Markal
+  [18.580, 73.975],
+  [18.535, 73.995],
+  [18.470, 73.990],
+  [18.420, 73.945],
+  [18.415, 73.875],
+  [18.430, 73.795],
+  [18.465, 73.770],
+  [18.535, 73.760],
+  [18.578, 73.765],
+];
+
 interface MaharashtraMapProps {
   data: ReportLocation[];
   className?: string;
   selectedCategories?: string[]; // Categories to display
   selectedStatuses?: string[]; // Statuses to display
+  focusLocation?: { lat: number; lng: number; reportId?: string } | null;
+  onSelectReport?: (reportId: string) => void;
+  selectedWard?: string | null;
+  onSelectWard?: (wardName: string | null) => void;
 }
 
-// Pune bounds (tight fit around the city)
+// Pune & PMRDA bounds (Strict Pune City & Alandi area boundary)
 const PUNE_BOUNDS: L.LatLngBoundsExpression = [
-  [18.35, 73.65], // Southwest
-  [18.70, 74.05]  // Northeast
+  [18.38, 73.70], // Southwest
+  [18.73, 74.05]  // Northeast (Extends to Alandi / Indrayani river)
 ];
 
-// Pune center
-const PUNE_CENTER: L.LatLngExpression = [18.5204, 73.8567]; // Pune city center
+// Pune center (PMC Headquarters / Shivajinagar)
+const PUNE_CENTER: L.LatLngExpression = [18.5204, 73.8567];
+
+function isWithinPuneCity(lat: number, lng: number): boolean {
+  return lat >= 18.35 && lat <= 18.75 && lng >= 73.65 && lng <= 74.08;
+}
 
 // Tile layer options for different map styles
 const tileLayers = {
@@ -149,17 +177,26 @@ export default function HeatMap({
   data, 
   className = '',
   selectedCategories = [],
-  selectedStatuses = []
+  selectedStatuses = [],
+  focusLocation,
+  onSelectReport,
+  selectedWard,
+  onSelectWard,
 }: MaharashtraMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const wardsLayerRef = useRef<L.LayerGroup | null>(null);
+  const markerMapRef = useRef<Map<string, L.Marker>>(new Map());
   const [activeLayer, setActiveLayer] = useState<'satellite' | 'terrain' | 'streets' | 'dark'>('streets');
+  const [showWards, setShowWards] = useState(true);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Filter data based on selected categories and statuses
+  // Filter data strictly within Pune City area and by selected categories/statuses
   const filteredData = data.filter(point => {
+    if (!point.lat || !point.lng) return false;
+    if (!isWithinPuneCity(point.lat, point.lng)) return false;
     const categoryMatch = selectedCategories.length === 0 || !point.category || selectedCategories.includes(point.category);
     const statusMatch = selectedStatuses.length === 0 || !point.status || selectedStatuses.includes(point.status);
     return categoryMatch && statusMatch;
@@ -169,12 +206,14 @@ export default function HeatMap({
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Initialize map
+    // Initialize map locked strictly to Pune City
     mapInstanceRef.current = L.map(mapRef.current, {
       center: PUNE_CENTER,
       zoom: 12,
-      minZoom: 10,
+      minZoom: 11,
       maxZoom: 18,
+      maxBounds: PUNE_BOUNDS,
+      maxBoundsViscosity: 1.0,
       zoomControl: false,
       scrollWheelZoom: true,
     });
@@ -188,95 +227,97 @@ export default function HeatMap({
       maxZoom: 19,
     }).addTo(mapInstanceRef.current);
 
-
-    // Initialize markers layer
+    // Initialize ward boundaries layer & markers layer
+    wardsLayerRef.current = L.layerGroup().addTo(mapInstanceRef.current);
     markersLayerRef.current = L.layerGroup().addTo(mapInstanceRef.current);
 
     // Legend: coloured by category
-      const LEGEND_ITEMS = [
-        { label: 'Garbage',       color: '#f59e0b' },
-        { label: 'Road Damage',   color: '#ef4444' },
-        { label: 'Water Supply',  color: '#3b82f6' },
-        { label: 'Electrical',    color: '#8b5cf6' },
-        { label: 'Sewage',        color: '#10b981' },
-        { label: 'Tree / Garden', color: '#22c55e' },
-        { label: 'Encroachment',  color: '#f97316' },
-        { label: 'Noise',         color: '#ec4899' },
-        { label: 'Other',         color: '#6b7280' },
-      ];
+    const LEGEND_ITEMS = [
+      { label: 'Garbage',       color: '#f59e0b' },
+      { label: 'Road Damage',   color: '#ef4444' },
+      { label: 'Water Supply',  color: '#3b82f6' },
+      { label: 'Electrical',    color: '#8b5cf6' },
+      { label: 'Sewage',        color: '#10b981' },
+      { label: 'Tree / Garden', color: '#22c55e' },
+      { label: 'Encroachment',  color: '#f97316' },
+      { label: 'Noise',         color: '#ec4899' },
+      { label: 'Other',         color: '#6b7280' },
+    ];
 
-      const LegendControl = L.Control.extend({
-        options: { position: 'bottomright' as L.ControlPosition },
-        onAdd: function() {
-          const div = L.DomUtil.create('div', 'map-legend');
-          div.innerHTML = `
-            <div style="
-              background: rgba(255,255,255,0.96);
-              backdrop-filter: blur(10px);
-              padding: 12px 14px;
-              border-radius: 14px;
-              box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-              font-size: 11px;
-              min-width: 140px;
-            ">
-              <div style="font-weight: 700; margin-bottom: 8px; color: #111827; font-size: 12px;">Category</div>
-              <div style="display: flex; flex-direction: column; gap: 5px;">
-                ${LEGEND_ITEMS.map(item => `
-                  <div style="display: flex; align-items: center; gap: 7px;">
-                    <div style="width: 12px; height: 12px; background: ${item.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); flex-shrink: 0;"></div>
-                    <span style="color: #4b5563;">${item.label}</span>
-                  </div>
-                `).join('')}
-              </div>
+    const LegendControl = L.Control.extend({
+      options: { position: 'bottomright' as L.ControlPosition },
+      onAdd: function() {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = `
+          <div style="
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(10px);
+            padding: 8px 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            font-size: 10px;
+            min-width: 120px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+          ">
+            <div style="font-weight: 700; margin-bottom: 4px; color: #0f172a; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;">Incident Legend</div>
+            <div style="display: grid; grid-template-columns: 1fr; gap: 3px;">
+              ${LEGEND_ITEMS.slice(0, 6).map(item => `
+                <div style="display: flex; align-items: center; gap: 5px;">
+                  <div style="width: 8px; height: 8px; background: ${item.color}; border-radius: 50%; border: 1.5px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.2); flex-shrink: 0;"></div>
+                  <span style="color: #475569; font-size: 10px; font-weight: 500;">${item.label}</span>
+                </div>
+              `).join('')}
             </div>
-          `;
-          return div;
-        }
-      });
-      new LegendControl().addTo(mapInstanceRef.current);
+          </div>
+        `;
+        return div;
+      }
+    });
+    new LegendControl().addTo(mapInstanceRef.current);
 
-      // Add layer switcher control using custom Control class
-      const LayerControl = L.Control.extend({
-        options: { position: 'topleft' as L.ControlPosition },
-        onAdd: function() {
+    // Add layer switcher control
+    const LayerControl = L.Control.extend({
+      options: { position: 'topleft' as L.ControlPosition },
+      onAdd: function() {
         const div = L.DomUtil.create('div', 'layer-switcher');
         div.innerHTML = `
           <div style="
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(8px);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 4px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
             display: flex;
-            gap: 4px;
+            gap: 3px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
           ">
             <button id="btn-streets" style="
-              padding: 6px 10px;
-              border-radius: 8px;
+              padding: 4px 8px;
+              border-radius: 6px;
               border: none;
-              background: #6366f1;
+              background: #2563eb;
               color: white;
-              font-size: 11px;
+              font-size: 10px;
               cursor: pointer;
-              font-weight: 500;
+              font-weight: 600;
             ">Streets</button>
             <button id="btn-satellite" style="
-              padding: 6px 10px;
-              border-radius: 8px;
+              padding: 4px 8px;
+              border-radius: 6px;
               border: none;
-              background: #e5e7eb;
-              color: #374151;
-              font-size: 11px;
+              background: transparent;
+              color: #475569;
+              font-size: 10px;
               cursor: pointer;
               font-weight: 500;
             ">Satellite</button>
             <button id="btn-terrain" style="
-              padding: 6px 10px;
-              border-radius: 8px;
+              padding: 4px 8px;
+              border-radius: 6px;
               border: none;
-              background: #e5e7eb;
-              color: #374151;
-              font-size: 11px;
+              background: transparent;
+              color: #475569;
+              font-size: 10px;
               cursor: pointer;
               font-weight: 500;
             ">Terrain</button>
@@ -293,15 +334,15 @@ export default function HeatMap({
               const target = e.target as HTMLButtonElement;
               const layerType = target.id.replace('btn-', '') as 'streets' | 'satellite' | 'terrain';
               
-              // Update button styles
               div.querySelectorAll('button').forEach(b => {
-                (b as HTMLButtonElement).style.background = '#e5e7eb';
-                (b as HTMLButtonElement).style.color = '#374151';
+                (b as HTMLButtonElement).style.background = 'transparent';
+                (b as HTMLButtonElement).style.color = '#475569';
+                (b as HTMLButtonElement).style.fontWeight = '500';
               });
-              target.style.background = '#6366f1';
+              target.style.background = '#2563eb';
               target.style.color = 'white';
+              target.style.fontWeight = '600';
               
-              // Switch tile layer
               if (tileLayerRef.current) {
                 map.removeLayer(tileLayerRef.current);
               }
@@ -314,71 +355,230 @@ export default function HeatMap({
         }, 100);
         
         return div;
-        }
-      });
-      new LayerControl().addTo(mapInstanceRef.current);
+      }
+    });
+    new LayerControl().addTo(mapInstanceRef.current);
 
-      // Add scale control
-      L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mapInstanceRef.current);
+    // Add scale control
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(mapInstanceRef.current);
 
-      // Fit bounds to Pune with animation
-      mapInstanceRef.current.fitBounds(PUNE_BOUNDS, { padding: [30, 30] });
-      
-      setMapReady(true);
+    // Fit bounds to Pune
+    mapInstanceRef.current.fitBounds(PUNE_BOUNDS, { padding: [15, 15] });
+    
+    // Invalidate size to ensure perfect fit without gray edges
+    setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 150);
+
+    const handleResize = () => {
+      mapInstanceRef.current?.invalidateSize();
+    };
+    window.addEventListener('resize', handleResize);
+    
+    setMapReady(true);
 
     // Cleanup only on unmount
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+        wardsLayerRef.current = null;
         markersLayerRef.current = null;
+        markerMapRef.current.clear();
         tileLayerRef.current = null;
         setMapReady(false);
       }
     };
-  }, []); // Empty dependency - only run once on mount
+  }, []);
 
-  // Update markers when data changes (separate effect)
+  // Draw PMC Ward Polygons & Boundaries
+  useEffect(() => {
+    if (!mapReady || !wardsLayerRef.current || !mapInstanceRef.current) return;
+    const layer = wardsLayerRef.current;
+    layer.clearLayers();
+
+    // 1. Draw outer PMC City boundary outline (Thick Blue Border)
+    const outerPolygon = L.polygon(PMC_OUTER_BOUNDARY, {
+      color: '#1e3a8a',
+      weight: 3.5,
+      opacity: 0.95,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.03,
+      dashArray: undefined,
+    });
+    layer.addLayer(outerPolygon);
+
+    // 2. Draw 15 PMC Ward Boundary Polygons with Labels
+    PUNE_ADMIN_WARDS.forEach((ward: PuneWard) => {
+      const isSelected = selectedWard === ward.name || selectedWard === ward.code;
+
+      const polygon = L.polygon(ward.coordinates, {
+        color: isSelected ? '#1d4ed8' : '#2563eb',
+        weight: isSelected ? 3.5 : 2.2,
+        opacity: 0.9,
+        fillColor: isSelected ? '#3b82f6' : '#60a5fa',
+        fillOpacity: isSelected ? 0.32 : 0.12,
+        className: 'pune-ward-polygon',
+      });
+
+      polygon.bindTooltip(`
+        <div style="font-family: system-ui; padding: 2px;">
+          <strong style="color: #1e3a8a; font-size: 12px;">${ward.code} - ${ward.name}</strong><br/>
+          <span style="font-size: 10px; color: #64748b;">${ward.nameMr}</span><br/>
+          <span style="font-size: 9px; color: #2563eb; font-weight: 600;">Key areas: ${ward.keyAreas.slice(0, 3).join(', ')}</span>
+        </div>
+      `, {
+        sticky: true,
+        direction: 'top',
+        className: 'pune-ward-tooltip',
+      });
+
+      polygon.on('mouseover', () => {
+        polygon.setStyle({
+          fillOpacity: 0.28,
+          weight: 3,
+          color: '#1d4ed8',
+        });
+      });
+
+      polygon.on('mouseout', () => {
+        if (!isSelected) {
+          polygon.setStyle({
+            fillOpacity: 0.12,
+            weight: 2.2,
+            color: '#2563eb',
+          });
+        }
+      });
+
+      polygon.on('click', () => {
+        if (onSelectWard) {
+          onSelectWard(selectedWard === ward.name ? null : ward.name);
+        }
+      });
+
+      layer.addLayer(polygon);
+
+      // Add Centered Ward Code Badge (e.g. AB, KB, SG, KV, HM)
+      const labelIcon = L.divIcon({
+        className: 'pune-ward-label-icon',
+        html: `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            color: #1e40af;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1.5px solid #2563eb;
+            border-radius: 6px;
+            padding: 1px 4px;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+            pointer-events: none;
+            letter-spacing: 0.05em;
+          ">
+            ${ward.code}
+          </div>
+        `,
+        iconSize: [28, 18],
+        iconAnchor: [14, 9],
+      });
+
+      const labelMarker = L.marker(ward.center, {
+        icon: labelIcon,
+        interactive: false,
+      });
+
+      layer.addLayer(labelMarker);
+    });
+  }, [mapReady, selectedWard, onSelectWard]);
+
+  // Update markers when data changes
   useEffect(() => {
     if (!mapReady || !markersLayerRef.current || !mapInstanceRef.current) return;
     
     markersLayerRef.current.clearLayers();
+    markerMapRef.current.clear();
 
     filteredData.forEach(point => {
       if (point.lat && point.lng) {
         let marker: L.Marker;
         
         if (point.count && point.count > 1) {
-          // Use cluster icon for multiple reports
           marker = L.marker([point.lat, point.lng], {
             icon: createClusterIcon(point.count)
           });
         } else {
-          // Use category-coloured icon for single reports
           marker = L.marker([point.lat, point.lng], {
             icon: createReportIcon(point.category)
           });
         }
 
-        // Compact popup: image + key metadata only
+        const reportUrl = point.reportId ? `/smc/complaint/${encodeURIComponent(point.reportId)}` : '#';
+        const priorityColor = point.priority === 'Critical' || point.priority === 'High' 
+          ? 'background: #fee2e2; color: #b91c1c;'
+          : point.priority === 'Medium'
+          ? 'background: #fef3c7; color: #b45309;'
+          : 'background: #e0e7ff; color: #4338ca;';
+
         const popupContent = `
-          <div style="min-width: 220px; max-width: 240px; padding: 0; border-radius: 12px; overflow: hidden;">
+          <div style="min-width: 230px; max-width: 250px; padding: 0; border-radius: 12px; overflow: hidden; font-family: system-ui, -apple-system, sans-serif;">
             ${point.imageUrl ? `
-              <div style="width: 100%; height: 140px; overflow: hidden; background: #f3f4f6;">
+              <div style="width: 100%; height: 130px; overflow: hidden; background: #0f172a; position: relative;">
                 <img 
                   src="${point.imageUrl}" 
-                  alt="Report" 
+                  alt="Incident evidence" 
                   style="width: 100%; height: 100%; object-fit: cover;" 
-                  class="map-popup-image"
                 />
+                ${point.priority ? `
+                  <span style="position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 9999px; ${priorityColor} box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    ${point.priority}
+                  </span>
+                ` : ''}
               </div>
             ` : ''}
             <div style="padding: 12px; background: white;">
-              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
-                ${point.type ? `<div style="color: #374151;"><strong>Category:</strong> ${point.type}</div>` : ''}
-                ${point.priority ? `<div style="color: #374151;"><strong>Priority:</strong> ${point.priority}</div>` : ''}
-                ${point.date ? `<div style="color: #6b7280;"><strong>Reported:</strong> ${point.date}</div>` : ''}
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.04em;">
+                  ${point.category || point.type || 'Civic Issue'}
+                </span>
+                ${point.status ? `
+                  <span style="font-size: 10px; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 6px; border-radius: 6px;">
+                    ${point.status}
+                  </span>
+                ` : ''}
               </div>
+              
+              <p style="margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #0f172a; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${point.description || point.location || 'Pune civic issue'}
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: #64748b; margin-bottom: 10px;">
+                ${point.location ? `<div>📍 ${point.location.split(',')[0]}</div>` : ''}
+                ${point.date ? `<div>🕒 ${point.date}</div>` : ''}
+              </div>
+
+              ${point.reportId ? `
+                <a href="${reportUrl}" style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 4px;
+                  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+                  color: white;
+                  font-size: 11px;
+                  font-weight: 600;
+                  padding: 7px 12px;
+                  border-radius: 8px;
+                  text-decoration: none;
+                  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+                ">
+                  Inspect Report Details →
+                </a>
+              ` : ''}
             </div>
           </div>
         `;
@@ -389,14 +589,35 @@ export default function HeatMap({
           autoPan: true,
           autoPanPaddingTopLeft: [16, 16],
           autoPanPaddingBottomRight: [16, 16],
-          maxWidth: 250,
-          minWidth: 220,
+          maxWidth: 260,
+          minWidth: 230,
         });
+
+        if (point.reportId) {
+          markerMapRef.current.set(point.reportId, marker);
+        }
 
         markersLayerRef.current?.addLayer(marker);
       }
     });
   }, [filteredData, mapReady]);
+
+  // Handle focus on specific report from dashboard list
+  useEffect(() => {
+    if (!mapReady || !mapInstanceRef.current || !focusLocation) return;
+    const map = mapInstanceRef.current;
+    
+    map.flyTo([focusLocation.lat, focusLocation.lng], 15, {
+      duration: 0.8,
+    });
+
+    if (focusLocation.reportId && markerMapRef.current.has(focusLocation.reportId)) {
+      const marker = markerMapRef.current.get(focusLocation.reportId);
+      setTimeout(() => {
+        marker?.openPopup();
+      }, 400);
+    }
+  }, [focusLocation, mapReady]);
 
   return (
     <div className="relative w-full h-full">

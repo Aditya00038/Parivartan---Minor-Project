@@ -130,9 +130,17 @@ function buildPopupHtml(
     </div>`;
 }
 
-// ─── Default center ───────────────────────────────────────────────────────────
+// ─── Default center & Pune Bounds ─────────────────────────────────────────────
 
-const DEFAULT_CENTER = { lat: 18.5890, lng: 73.9020 };
+const DEFAULT_CENTER = { lat: 18.5204, lng: 73.8567 }; // Pune City center
+const PUNE_BOUNDS: L.LatLngBoundsExpression = [
+  [18.38, 73.70],
+  [18.73, 74.05],
+];
+
+function isWithinPuneCity(lat: number, lng: number): boolean {
+  return lat >= 18.35 && lat <= 18.75 && lng >= 73.65 && lng <= 74.08;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -161,7 +169,7 @@ export default function NearbyServicesMap() {
 
   const activeReports = useMemo(() => {
     if (!rawReports) return [];
-    return rawReports.filter((r: Report) => r.latitude && r.longitude && !['Resolved', 'Rejected'].includes(r.status));
+    return rawReports.filter((r: Report) => r.latitude && r.longitude && isWithinPuneCity(r.latitude, r.longitude) && !['Resolved', 'Rejected'].includes(r.status));
   }, [rawReports]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -184,6 +192,10 @@ export default function NearbyServicesMap() {
       zoomControl: false,
       zoomAnimation: false,
       attributionControl: false,
+      minZoom: 11,
+      maxZoom: 19,
+      maxBounds: PUNE_BOUNDS,
+      maxBoundsViscosity: 1.0,
     }).setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 13);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -200,7 +212,11 @@ export default function NearbyServicesMap() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          if (isWithinPuneCity(pos.coords.latitude, pos.coords.longitude)) {
+            setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          } else {
+            setUserPos(DEFAULT_CENTER);
+          }
           setLocating(false);
         },
         () => { setUserPos(DEFAULT_CENTER); setLocating(false); },

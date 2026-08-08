@@ -23,6 +23,12 @@ const markerIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
+// Pune & Alandi area boundary bounds
+const PUNE_BOUNDS: L.LatLngBoundsExpression = [
+  [18.38, 73.70],
+  [18.73, 74.05],
+];
+
 export default function AdminLocationPicker({
   selectedPosition,
   defaultCenter = { lat: 18.5204, lng: 73.8567 },
@@ -40,7 +46,11 @@ export default function AdminLocationPicker({
       fadeAnimation: false,
       markerZoomAnimation: false,
       inertia: false,
-    }).setView([defaultCenter.lat, defaultCenter.lng], 12, { animate: false });
+      minZoom: 11,
+      maxZoom: 18,
+      maxBounds: PUNE_BOUNDS,
+      maxBoundsViscosity: 1.0,
+    }).setView([defaultCenter.lat, defaultCenter.lng], 13, { animate: false });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',

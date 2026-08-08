@@ -266,7 +266,11 @@ export default function DeptComplaintDetailPage() {
                   {i < arr.length - 1 && <div className="mt-1 w-px flex-1 bg-gray-200" />}
                 </div>
                 <div className="flex-1 pb-3">
-                  <p className="text-sm font-medium">{log.actorName} → <Badge variant="outline" className="text-xs">{log.status}</Badge></p>
+                  <div className="flex items-center gap-1.5 text-sm font-medium">
+                    <span>{log.actorName}</span>
+                    <span className="font-normal text-muted-foreground">→</span>
+                    <Badge variant="outline" className="text-xs">{log.status}</Badge>
+                  </div>
                   {log.notes && <p className="text-xs text-muted-foreground italic mt-0.5">"{log.notes}"</p>}
                   <p className="text-xs text-muted-foreground mt-1">{new Date(log.timestamp).toLocaleString()}</p>
                 </div>

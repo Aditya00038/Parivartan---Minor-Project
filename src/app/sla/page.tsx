@@ -8,12 +8,12 @@ import { useRouter } from 'next/navigation';
 
 
 const slaData = [
-    { category: 'Critical Potholes (Main Roads)', responseTime: '4 Hours', resolutionTime: '24 Hours' },
-    { category: 'Road Damage (Major)', responseTime: '8 Hours', resolutionTime: '72 Hours' },
-    { category: 'Street Light Outage', responseTime: '12 Hours', resolutionTime: '48 Hours' },
-    { category: 'Drainage & Gutter Issues', responseTime: '12 Hours', resolutionTime: '96 Hours' },
-    { category: 'Faded Road Markings', responseTime: '24 Hours', resolutionTime: '7 Days' },
-    { category: 'Other Minor Issues', responseTime: '48 Hours', resolutionTime: '14 Days' },
+  { category: 'Critical Potholes (Main Roads)', responseTime: '4 Hours', resolutionTime: '24 Hours' },
+  { category: 'Road Damage (Major)', responseTime: '8 Hours', resolutionTime: '72 Hours' },
+  { category: 'Street Light Outage', responseTime: '12 Hours', resolutionTime: '48 Hours' },
+  { category: 'Drainage & Gutter Issues', responseTime: '12 Hours', resolutionTime: '96 Hours' },
+  { category: 'Faded Road Markings', responseTime: '24 Hours', resolutionTime: '7 Days' },
+  { category: 'Other Minor Issues', responseTime: '48 Hours', resolutionTime: '14 Days' },
 ];
 
 export default function SLAPolicyPage() {
@@ -35,7 +35,7 @@ export default function SLAPolicyPage() {
             issues reported through the Parivartan platform. This Service Level Agreement (SLA) outlines our commitment
             to response and resolution times.
           </p>
-          
+
           <h2 className="text-xl font-semibold text-foreground pt-4">Definitions</h2>
           <ul className="list-disc pl-6 space-y-2">
             <li>
@@ -47,12 +47,12 @@ export default function SLAPolicyPage() {
               completed and marked as "Resolved" in the system.
             </li>
             <li>
-                <strong>Business Hours:</strong> SLAs are typically measured against standard municipal working hours (10:00 AM to 6:00 PM, Monday to Saturday), excluding public holidays. Critical issues may be addressed outside these hours.
+              <strong>Business Hours:</strong> SLAs are typically measured against standard municipal working hours (10:00 AM to 6:00 PM, Monday to Saturday), excluding public holidays. Critical issues may be addressed outside these hours.
             </li>
           </ul>
 
           <h2 className="text-xl font-semibold text-foreground pt-4">SLA Targets</h2>
-            <p>The following table outlines the target SLA for different categories of complaints. These timelines may be affected by factors such as weather conditions, resource availability, and the complexity of the issue.</p>
+          <p>The following table outlines the target SLA for different categories of complaints. These timelines may be affected by factors such as weather conditions, resource availability, and the complexity of the issue.</p>
           <Table>
             <TableHeader>
               <TableRow>

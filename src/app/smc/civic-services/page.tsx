@@ -21,18 +21,18 @@ import type { CivicServiceCategory } from '@/lib/types';
 /* ─── constants ─────────────────────────────────────────────────────────── */
 
 const STATUS_STYLES: Record<CivicServiceStatus, { pill: string; dot: string; label: string }> = {
-  pending:  { pill: 'bg-amber-50 text-amber-700 border border-amber-200',  dot: 'bg-amber-400',  label: 'Pending'  },
+  pending: { pill: 'bg-amber-50 text-amber-700 border border-amber-200', dot: 'bg-amber-400', label: 'Pending' },
   approved: { pill: 'bg-emerald-50 text-emerald-700 border border-emerald-200', dot: 'bg-emerald-500', label: 'Approved' },
-  rejected: { pill: 'bg-red-50 text-red-600 border border-red-200',        dot: 'bg-red-400',    label: 'Rejected' },
+  rejected: { pill: 'bg-red-50 text-red-600 border border-red-200', dot: 'bg-red-400', label: 'Rejected' },
 };
 
 type FilterTab = 'pending' | 'approved' | 'rejected' | 'all';
 
 const TABS: { key: FilterTab; label: string; icon: React.ReactNode }[] = [
-  { key: 'pending',  label: 'Pending',  icon: <Clock  className="h-3.5 w-3.5" /> },
+  { key: 'pending', label: 'Pending', icon: <Clock className="h-3.5 w-3.5" /> },
   { key: 'approved', label: 'Approved', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
   { key: 'rejected', label: 'Rejected', icon: <XCircle className="h-3.5 w-3.5" /> },
-  { key: 'all',      label: 'All',      icon: <Layers className="h-3.5 w-3.5" /> },
+  { key: 'all', label: 'All', icon: <Layers className="h-3.5 w-3.5" /> },
 ];
 
 /* ─── delete-confirmation modal ─────────────────────────────────────────── */
@@ -103,16 +103,16 @@ function DeleteConfirmModal({
 /* ─── main page ─────────────────────────────────────────────────────────── */
 
 export default function CivicServicesAdminPage() {
-  const firestore  = useFirestore();
-  const { user }   = useUser();
-  const { toast }  = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
 
-  const [tab,         setTab]         = useState<FilterTab>('pending');
-  const [search,      setSearch]      = useState('');
-  const [processing,  setProcessing]  = useState<string | null>(null);
+  const [tab, setTab] = useState<FilterTab>('pending');
+  const [search, setSearch] = useState('');
+  const [processing, setProcessing] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<CivicService | null>(null);
-  const [deleting,    setDeleting]    = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   /* firestore query */
   const servicesQuery = useMemoFirebase(() => {
@@ -124,10 +124,10 @@ export default function CivicServicesAdminPage() {
 
   /* derived data */
   const counts = {
-    pending:  (allServices ?? []).filter(s => s.status === 'pending').length,
+    pending: (allServices ?? []).filter(s => s.status === 'pending').length,
     approved: (allServices ?? []).filter(s => s.status === 'approved').length,
     rejected: (allServices ?? []).filter(s => s.status === 'rejected').length,
-    all:      (allServices ?? []).length,
+    all: (allServices ?? []).length,
   };
 
   const filtered = (allServices ?? [])
@@ -148,7 +148,7 @@ export default function CivicServicesAdminPage() {
     setProcessing(service.id);
     try {
       const updateData: Record<string, string> = {
-        status:     decision,
+        status: decision,
         reviewedBy: user.uid,
         reviewedAt: new Date().toISOString(),
       };
@@ -158,7 +158,7 @@ export default function CivicServicesAdminPage() {
       }
       await updateDoc(doc(firestore, 'civic_services', service.id), updateData);
       toast({
-        title:       decision === 'approved' ? '✅ Service approved' : '❌ Service rejected',
+        title: decision === 'approved' ? '✅ Service approved' : '❌ Service rejected',
         description: `"${service.name}" has been ${decision}.`,
       });
     } catch {
@@ -175,7 +175,7 @@ export default function CivicServicesAdminPage() {
     try {
       await deleteDoc(doc(firestore, 'civic_services', deleteTarget.id));
       toast({
-        title:       '🗑️ Service removed',
+        title: '🗑️ Service removed',
         description: `"${deleteTarget.name}" has been permanently deleted.`,
       });
       setDeleteTarget(null);
@@ -218,10 +218,10 @@ export default function CivicServicesAdminPage() {
           {/* stat pills */}
           <div className="mt-5 flex flex-wrap gap-3">
             {[
-              { label: 'Pending',  value: counts.pending,  bg: 'bg-amber-400/20  text-amber-100  border-amber-300/30'   },
+              { label: 'Pending', value: counts.pending, bg: 'bg-amber-400/20  text-amber-100  border-amber-300/30' },
               { label: 'Approved', value: counts.approved, bg: 'bg-emerald-400/20 text-emerald-100 border-emerald-300/30' },
-              { label: 'Rejected', value: counts.rejected, bg: 'bg-red-400/20     text-red-100    border-red-300/30'     },
-              { label: 'Total',    value: counts.all,      bg: 'bg-white/10       text-white       border-white/20'       },
+              { label: 'Rejected', value: counts.rejected, bg: 'bg-red-400/20     text-red-100    border-red-300/30' },
+              { label: 'Total', value: counts.all, bg: 'bg-white/10       text-white       border-white/20' },
             ].map(s => (
               <div
                 key={s.label}
@@ -254,17 +254,15 @@ export default function CivicServicesAdminPage() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  tab === t.key
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${tab === t.key
                     ? 'bg-white shadow text-slate-900'
                     : 'text-slate-500 hover:text-slate-700'
-                }`}
+                  }`}
               >
                 {t.icon}
                 {t.label}
-                <span className={`rounded-full px-1.5 text-[10px] font-bold ${
-                  tab === t.key ? 'bg-slate-100 text-slate-600' : 'bg-slate-200 text-slate-500'
-                }`}>
+                <span className={`rounded-full px-1.5 text-[10px] font-bold ${tab === t.key ? 'bg-slate-100 text-slate-600' : 'bg-slate-200 text-slate-500'
+                  }`}>
                   {counts[t.key]}
                 </span>
               </button>
@@ -275,7 +273,7 @@ export default function CivicServicesAdminPage() {
         {/* ── Loading skeletons ────────────────────────────────────────── */}
         {isLoading && (
           <div className="space-y-3">
-            {[1,2,3].map(i => <Skeleton key={i} className="h-52 w-full rounded-2xl" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-52 w-full rounded-2xl" />)}
           </div>
         )}
 
@@ -297,9 +295,9 @@ export default function CivicServicesAdminPage() {
         {/* ── Service cards ────────────────────────────────────────────── */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map(service => {
-            const cat         = CATEGORIES[service.category as CivicServiceCategory];
+            const cat = CATEGORIES[service.category as CivicServiceCategory];
             const isProcessing = processing === service.id;
-            const st          = STATUS_STYLES[service.status];
+            const st = STATUS_STYLES[service.status];
 
             return (
               <Card

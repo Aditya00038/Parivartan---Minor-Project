@@ -19,17 +19,17 @@ export function PWAInstallPrompt() {
 
   useEffect(() => {
     // Check if already in PWA mode
-    const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                          (window.navigator as any).standalone === true;
+    const isInStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
     setIsStandalone(isInStandalone);
 
     // Check if user has chosen not to see prompt again (permanently)
     const hidePrompt = localStorage.getItem('smc-pwa-hide-prompt') === 'true';
-    
+
     // Check if user clicked "Maybe Later" (temporary hide for 24 hours)
     const hideUntil = localStorage.getItem('smc-pwa-hide-until');
     const isTemporarilyHidden = hideUntil && Date.now() < parseInt(hideUntil);
-    
+
     if (isInStandalone || hidePrompt || isTemporarilyHidden) {
       return;
     }
@@ -38,7 +38,7 @@ export function PWAInstallPrompt() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      
+
       // Show prompt after 3-4 seconds
       setTimeout(() => {
         setShowPrompt(true);
@@ -79,7 +79,7 @@ export function PWAInstallPrompt() {
 
   const handleClose = () => {
     setShowPrompt(false);
-    
+
     // Save preference if checkbox is checked (permanently) or "Maybe Later" (for 24 hours)
     if (dontShowAgain) {
       localStorage.setItem('smc-pwa-hide-prompt', 'true');
@@ -120,8 +120,8 @@ export function PWAInstallPrompt() {
           </div>
 
           <div className="w-full space-y-3">
-            <Button 
-              onClick={handleInstallClick} 
+            <Button
+              onClick={handleInstallClick}
               className="w-full gap-2"
               size="lg"
             >
@@ -137,8 +137,8 @@ export function PWAInstallPrompt() {
               />
             </div>
 
-            <Button 
-              onClick={handleClose} 
+            <Button
+              onClick={handleClose}
               variant="ghost"
               className="w-full"
             >

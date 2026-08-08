@@ -14,15 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function WorkerLoginPage() {
-  const auth   = useAuth();
-  const db     = useFirestore();
+  const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { user } = useUser();
   const { toast } = useToast();
 
-  const [workerId,  setWorkerId]  = useState('');
-  const [password,  setPassword]  = useState('');
-  const [showPw,    setShowPw]    = useState(false);
+  const [workerId, setWorkerId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => { if (user) router.push('/worker/dashboard'); }, [user, router]);
@@ -66,8 +66,8 @@ export default function WorkerLoginPage() {
       const msg = err.code === 'auth/invalid-credential'
         ? 'Wrong password.'
         : err.code === 'auth/too-many-requests'
-        ? 'Too many attempts. Try again later.'
-        : err.message ?? 'Login failed.';
+          ? 'Too many attempts. Try again later.'
+          : err.message ?? 'Login failed.';
       toast({ title: 'Login failed', description: msg, variant: 'destructive' });
     } finally {
       setIsLoading(false);
