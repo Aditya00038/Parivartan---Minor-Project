@@ -13,8 +13,8 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       // Escalate priority if a more severe report exists in the cluster
       const priorityRank = { Critical: 4, High: 3, Medium: 2, Low: 1 };
       if ((priorityRank[r.priority as keyof typeof priorityRank] ?? 1) >
-          (priorityRank[clusters[key].priority as keyof typeof priorityRank] ?? 1)) {
+        (priorityRank[clusters[key].priority as keyof typeof priorityRank] ?? 1)) {
         clusters[key].priority = r.priority ?? 'Low';
       }
     });

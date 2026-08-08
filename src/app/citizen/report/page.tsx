@@ -551,33 +551,80 @@ export default function ReportProblemPage() {
               />
 
               {showCamera && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-                  <Card className="w-full max-w-2xl border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                    <CardHeader className="border-b border-slate-100 dark:border-slate-800">
-                      <CardTitle>Live Camera</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center gap-4">
-                      <video ref={videoRef} className="w-full aspect-video rounded-md bg-slate-100 dark:bg-slate-900" autoPlay muted playsInline />
-                      {hasCameraPermission === false && (
-                        <Alert variant="destructive">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertTitle>Camera Access Denied</AlertTitle>
-                          <AlertDescription>
-                            Please enable camera permissions to capture a photo.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                      <div className="flex gap-4">
-                        <Button type="button" onClick={handleCapture} disabled={!hasCameraPermission}>
-                          <Camera className="mr-2" /> Capture
-                        </Button>
-                        <Button type="button" variant="outline" onClick={() => setShowCamera(false)}>
-                          Close
-                        </Button>
+                <div className="fixed inset-0 z-50 flex flex-col bg-black">
+                  {/* ── Top bar ─────────────────────────────────── */}
+                  <div className="relative z-10 flex items-center justify-between px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                      <span className="text-xs font-semibold tracking-wider text-white/80 uppercase">Live Camera</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
+                      onClick={() => setShowCamera(false)}
+                    >
+                      <span className="text-lg font-bold">✕</span>
+                      <span className="sr-only">Close Camera</span>
+                    </Button>
+                  </div>
+
+                  {/* ── Viewfinder ──────────────────────────────── */}
+                  <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+                    <video
+                      ref={videoRef}
+                      className="h-full w-full object-cover"
+                      autoPlay
+                      muted
+                      playsInline
+                    />
+                    {/* Viewfinder corner guides */}
+                    <div className="pointer-events-none absolute inset-6 md:inset-16">
+                      {/* Top-left */}
+                      <div className="absolute left-0 top-0 h-8 w-8 border-l-2 border-t-2 border-white/60 rounded-tl-md" />
+                      {/* Top-right */}
+                      <div className="absolute right-0 top-0 h-8 w-8 border-r-2 border-t-2 border-white/60 rounded-tr-md" />
+                      {/* Bottom-left */}
+                      <div className="absolute bottom-0 left-0 h-8 w-8 border-b-2 border-l-2 border-white/60 rounded-bl-md" />
+                      {/* Bottom-right */}
+                      <div className="absolute bottom-0 right-0 h-8 w-8 border-b-2 border-r-2 border-white/60 rounded-br-md" />
+                    </div>
+
+                    {/* Camera denied overlay */}
+                    {hasCameraPermission === false && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/90 px-8 text-center">
+                        <div className="rounded-full bg-red-500/20 p-4">
+                          <AlertTriangle className="h-10 w-10 text-red-400" />
+                        </div>
+                        <p className="text-lg font-semibold text-white">Camera Access Denied</p>
+                        <p className="text-sm text-white/60 max-w-sm">
+                          Please enable camera permissions in your browser settings to capture a photo of the civic issue.
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
-                  <canvas ref={canvasRef} className="hidden"></canvas>
+                    )}
+                  </div>
+
+                  {/* ── Bottom controls ─────────────────────────── */}
+                  <div className="relative z-10 flex items-center justify-center gap-8 px-6 py-6 pb-8">
+                    {/* Capture button — large circle */}
+                    <button
+                      type="button"
+                      onClick={handleCapture}
+                      disabled={!hasCameraPermission}
+                      className="group relative flex h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-white transition-all hover:scale-105 active:scale-95 disabled:opacity-30 disabled:hover:scale-100"
+                    >
+                      <div className="h-[58px] w-[58px] rounded-full bg-white transition-colors group-hover:bg-white/90 group-active:bg-red-400" />
+                      <span className="sr-only">Capture Photo</span>
+                    </button>
+                  </div>
+
+                  {/* Hint text */}
+                  <p className="pb-4 text-center text-xs text-white/40">
+                    Point at the issue and tap the button to capture
+                  </p>
+
+                  <canvas ref={canvasRef} className="hidden" />
                 </div>
               )}
 
