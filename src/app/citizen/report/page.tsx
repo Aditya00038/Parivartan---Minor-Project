@@ -424,6 +424,23 @@ export default function ReportProblemPage() {
 
       const automatedLogEntry = createAutomatedActionLog(workflow, assignedContractor || undefined);
 
+      // Construct Illegal Dumping payload if visual evidence was detected by AI
+      const illegalDumpingPayload = aiAnalysis?.illegalDumping?.detected ? {
+        detected: true,
+        confidence: aiAnalysis.illegalDumping.confidence ?? 0.85,
+        wasteType: aiAnalysis.illegalDumping.wasteType || values.category || 'General Waste',
+        vehicleDetected: Boolean(aiAnalysis.illegalDumping.vehicleDetected),
+        vehicleType: aiAnalysis.illegalDumping.vehicleType || null,
+        licensePlateVisible: Boolean(aiAnalysis.illegalDumping.licensePlateVisible) && !!aiAnalysis.illegalDumping.licensePlateNumber,
+        licensePlateNumber: aiAnalysis.illegalDumping.licensePlateNumber || null,
+        evidenceQuality: aiAnalysis.illegalDumping.evidenceQuality || 'fair',
+        reason: aiAnalysis.illegalDumping.reason || 'Visual evidence captured.',
+        verificationStatus: 'PENDING' as const,
+        fineDetails: {
+          status: 'NOT_ISSUED' as const,
+        },
+      } : null;
+
       // Step 4: Create report with all automation data
       const newReportRef = await addDocumentNonBlocking(reportsCollection, {
         userId: user.uid,
@@ -448,6 +465,8 @@ export default function ReportProblemPage() {
         aiAnalysis: aiAnalysis,
         automationConfidence: automationConfidence,
         actionLog: [initialLogEntry, automatedLogEntry],
+        complaintType: illegalDumpingPayload ? 'Illegal Dumping' : 'Standard',
+        illegalDumping: illegalDumpingPayload,
       });
 
       // Success messages based on automation level
@@ -733,6 +752,36 @@ export default function ReportProblemPage() {
                       </p>
                     </div>
                     {isChecking && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Potential Illegal Dumping Evidence Alert ────────────── */}
+              {cachedAiAnalysis?.illegalDumping?.detected && (
+                <div className="rounded-xl border border-purple-200 bg-purple-50/80 p-4 dark:border-purple-900/50 dark:bg-purple-950/40">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-lg bg-purple-500/10 p-2 text-purple-600 dark:text-purple-400">
+                      <AlertTriangle className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-bold text-purple-900 dark:text-purple-200">
+                        Potential Illegal Dumping Detected
+                      </p>
+                      <p className="text-xs text-purple-700 dark:text-purple-300">
+                        Your report may contain visual evidence of illegal dumping. The submitted evidence will be reviewed by the municipal authority.
+                      </p>
+
+                      {cachedAiAnalysis.illegalDumping.licensePlateNumber && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-purple-100 px-2.5 py-1 text-xs font-mono font-bold text-purple-900 dark:bg-purple-900/80 dark:text-purple-100">
+                          <span>🚘 Vehicle Registration Detected:</span>
+                          <span className="underline">{cachedAiAnalysis.illegalDumping.licensePlateNumber}</span>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-purple-600/80 dark:text-purple-400/80 pt-1">
+                        Note: All visual evidence is reviewed manually by municipal officers before taking any administrative action.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

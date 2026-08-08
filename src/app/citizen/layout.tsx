@@ -20,7 +20,7 @@ export default function CitizenLayout({
       <div className="relative flex min-h-screen flex-col bg-gray-50 dark:bg-slate-950">
         {!isLoginRoute && <GoogleTranslate />}
         {!isLoginRoute && <CitizenHeader />}
-        <main className={isLoginRoute ? 'flex-1' : 'flex-1 pb-24 md:pb-0'}>{children}</main>
+        <main className={isLoginRoute ? 'flex-1' : 'flex-1 pb-24 md:pb-28'}>{children}</main>
 
         {!isLoginRoute && (
           <>

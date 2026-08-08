@@ -120,7 +120,50 @@ export type Report = {
   queuePosition?: number; // Position in department queue
   assignmentHistory?: AssignmentHistory[]; // Track reassignments
   autoAssignmentScore?: number; // Score for matching worker (0-100)
+  // Incident linking fields
+  linkedIncidentId?: string | null;
+  linkedMatchType?: string | null;
+  linkedSimilarityScore?: number | null;
+  relatedReportCount?: number;
+  reportFrequency?: number;
+  lastRelatedAt?: string;
+  // Illegal Dumping Enforcement fields
+  complaintType?: 'Standard' | 'Illegal Dumping';
+  illegalDumping?: IllegalDumpingData | null;
 };
+
+export type EvidenceQuality = 'good' | 'fair' | 'poor';
+
+export type IllegalDumpingFineDetails = {
+  status: 'NOT_ISSUED' | 'PENDING' | 'ISSUED' | 'PAID' | 'DISPUTED' | 'CANCELLED';
+  amount?: number;
+  violationType?: string;
+  noticeNumber?: string;
+  issuedBy?: string;
+  issuedByName?: string;
+  issuedAt?: string;
+  notes?: string;
+};
+
+export type IllegalDumpingData = {
+  detected: boolean;
+  confidence: number;                  // 0.0 to 1.0
+  wasteType?: string | null;            // e.g., 'Construction Debris', 'Domestic Waste'
+  vehicleDetected: boolean;
+  vehicleType?: string | null;          // e.g., 'Truck', 'Auto-rickshaw', 'Car', 'Pickup', 'Two-wheeler'
+  licensePlateVisible: boolean;
+  licensePlateNumber?: string | null;    // Extracted license plate (e.g. 'MH12AB1234' or null)
+  croppedPlateUrl?: string | null;
+  evidenceQuality: EvidenceQuality;
+  reason?: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'INSUFFICIENT_EVIDENCE';
+  verifiedBy?: string | null;
+  verifiedByName?: string | null;
+  verifiedAt?: string | null;
+  rejectionReason?: string | null;
+  fineDetails?: IllegalDumpingFineDetails;
+};
+
 export type AIAnalysis = {
   damageDetected: boolean;
   damageCategory: string;
@@ -139,6 +182,17 @@ export type AIAnalysis = {
   suggestedPriority: 'Low' | 'Medium' | 'High' | 'Critical';
   duplicateSuggestion: string;
   suggestedLocationDetails?: string;
+  illegalDumping?: {
+    detected: boolean;
+    confidence: number;
+    wasteType?: string | null;
+    vehicleDetected: boolean;
+    vehicleType?: string | null;
+    licensePlateVisible: boolean;
+    licensePlateNumber?: string | null;
+    evidenceQuality: EvidenceQuality;
+    reason?: string;
+  } | null;
 };
 
 export type Notification = {

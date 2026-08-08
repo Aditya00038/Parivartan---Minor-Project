@@ -30,7 +30,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         {!isLoginRoute && <PWAInstallBanner variant="worker" />}
 
         {!isLoginRoute && (
-          <div className="fixed bottom-0 left-0 z-50 w-full border-t bg-background/95 shadow-lg backdrop-blur-md md:hidden">
+          <div className="fixed bottom-0 left-0 z-[9999] w-full border-t bg-background/95 shadow-lg backdrop-blur-md md:hidden">
             <div className="mx-auto grid h-16 max-w-md grid-cols-3 items-center px-1">
               {bottomNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
