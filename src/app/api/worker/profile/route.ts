@@ -6,6 +6,8 @@ import { requireWorkerIdentity } from '@/lib/worker-api-server';
 import { toSerializable, workerProfileUpdateSchema } from '@/lib/worker-api';
 import { getFirebaseAdmin } from '@/firebase/server';
 
+
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {

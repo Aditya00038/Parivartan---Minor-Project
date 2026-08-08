@@ -4,6 +4,8 @@ import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 
 import { departments } from '@/lib/constants';
 
+
+export const dynamic = 'force-dynamic';
 const ACCEPTED_DEPARTMENTS = Array.from(new Set([
   ...departments,
   'Engineering',

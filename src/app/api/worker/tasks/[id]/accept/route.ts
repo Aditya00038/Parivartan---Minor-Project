@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getWorkerReport, handleApiError, handleNotFound, serializableReport, timestampNow, workerLog } from '@/app/api/worker/_utils';
 import { getFirebaseAdmin } from '@/firebase/server';
 
+
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

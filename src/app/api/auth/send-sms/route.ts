@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendSMS } from '@/lib/twilio';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/auth/send-sms
  * Server-side endpoint to send SMS (credentials are secure on server)

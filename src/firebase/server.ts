@@ -20,22 +20,24 @@ function formatPrivateKey(key: string | undefined): string | undefined {
   return val.replace(/\\n/g, '\n').trim();
 }
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-  : {
-    projectId: runtimeProjectId,
-    privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  };
+function getOrInitAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApp();
+  }
 
-let adminApp: App;
+  const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
+    : {
+        projectId: runtimeProjectId,
+        privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      };
 
-const hasPlaceholderCredentials =
-  String(serviceAccount.clientEmail || '').includes('your-client-email') ||
-  String(serviceAccount.privateKey || '').includes('YOUR_PRIVATE_KEY_HERE') ||
-  String(serviceAccount.projectId || '').includes('your-project');
+  const hasPlaceholderCredentials =
+    String(serviceAccount.clientEmail || '').includes('your-client-email') ||
+    String(serviceAccount.privateKey || '').includes('YOUR_PRIVATE_KEY_HERE') ||
+    String(serviceAccount.projectId || '').includes('your-project');
 
-if (!getApps().length) {
   const hasExplicitCredentials =
     !!serviceAccount.projectId &&
     !!serviceAccount.clientEmail &&
@@ -48,27 +50,25 @@ if (!getApps().length) {
     );
   }
 
-  adminApp = initializeApp(
+  return initializeApp(
     hasExplicitCredentials
       ? {
-        credential: cert({
-          projectId: serviceAccount.projectId,
-          clientEmail: serviceAccount.clientEmail,
-          privateKey: serviceAccount.privateKey,
-        }),
-      }
+          credential: cert({
+            projectId: serviceAccount.projectId,
+            clientEmail: serviceAccount.clientEmail,
+            privateKey: serviceAccount.privateKey,
+          }),
+        }
       : {
-        projectId: runtimeProjectId,
-        // Fall back to the hosting/runtime identity when explicit credentials are not set.
-      }
+          projectId: runtimeProjectId,
+          // Fall back to the hosting/runtime identity when explicit credentials are not set.
+        }
   );
-} else {
-  adminApp = getApp();
 }
 
-const auth = getAuth(adminApp);
-const firestore = getFirestore(adminApp);
-
 export async function getFirebaseAdmin() {
+  const adminApp = getOrInitAdminApp();
+  const auth = getAuth(adminApp);
+  const firestore = getFirestore(adminApp);
   return { auth, firestore, app: adminApp };
 }

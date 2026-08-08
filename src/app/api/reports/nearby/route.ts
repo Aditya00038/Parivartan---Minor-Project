@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/firebase/server';
 
+
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /** Haversine distance in km between two GPS points */

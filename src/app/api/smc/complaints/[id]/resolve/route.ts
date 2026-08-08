@@ -5,6 +5,8 @@ import type { Report, ReportStatus } from '@/lib/types';
 import { isGenuineResolvedReport, getRewardOffer, buildRewardNotificationText } from '@/lib/reward-utils';
 import { FieldValue } from 'firebase-admin/firestore';
 
+export const dynamic = 'force-dynamic';
+
 const STATUS_PUSH_MESSAGES: Record<string, { title: string; body: string }> = {
   'Under Verification': {
     title: '🔍 Complaint Under Verification',

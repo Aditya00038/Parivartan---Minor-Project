@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendBulkSMS } from '@/lib/twilio';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * POST /api/notifications/send-sms
  * Sends SMS notifications to all citizens and workers

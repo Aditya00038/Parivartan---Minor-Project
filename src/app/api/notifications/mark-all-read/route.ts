@@ -3,6 +3,8 @@ import { getFirebaseAdmin } from '@/firebase/server';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/notifications/mark-all-read
  * Marks unread notifications as read.

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/firebase/server';
 
+
+export const dynamic = 'force-dynamic';
 function normalizeSegment(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }

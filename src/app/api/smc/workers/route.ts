@@ -6,6 +6,8 @@ import type { Firestore } from 'firebase-admin/firestore';
 
 import { departments } from '@/lib/constants';
 
+
+export const dynamic = 'force-dynamic';
 const ACCEPTED_DEPARTMENTS = Array.from(new Set([
   ...departments,
   'Engineering',

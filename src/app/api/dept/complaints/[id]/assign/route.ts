@@ -3,6 +3,7 @@ import { getFirebaseAdmin } from '@/firebase/server';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {

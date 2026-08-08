@@ -6,6 +6,8 @@ import { getFirebaseAdmin } from '@/firebase/server';
 import { workerStatusUpdateSchema } from '@/lib/worker-api';
 import type { ReportStatus } from '@/lib/types';
 
+
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 // Valid status transitions for worker tasks

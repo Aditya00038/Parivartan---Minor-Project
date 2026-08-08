@@ -3,6 +3,8 @@ import { getFirebaseAdmin } from '@/firebase/server';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 import { FieldValue } from 'firebase-admin/firestore';
 
+
+export const dynamic = 'force-dynamic';
 function normalizeSegment(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }

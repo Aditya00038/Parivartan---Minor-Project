@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/firebase/server';
 import { requireRequestIdentity, RequestAuthError } from '@/lib/server-auth';
 
+
+export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/notifications/[id]/mark-read
  * Marks a notification as read.
