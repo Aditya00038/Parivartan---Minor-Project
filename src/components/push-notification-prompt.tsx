@@ -32,7 +32,7 @@ export function PushNotificationPrompt() {
   // Get auth token
   useEffect(() => {
     if (!user) return;
-    user.getIdToken().then(setAuthToken).catch(() => {});
+    user.getIdToken().then(setAuthToken).catch(() => { });
   }, [user]);
 
   // Show prompt after 3 seconds if permission is default and user is logged in
@@ -175,7 +175,7 @@ export function NotificationToggleRow({
 
   useEffect(() => {
     if (!user) return;
-    user.getIdToken().then(setAuthToken).catch(() => {});
+    user.getIdToken().then(setAuthToken).catch(() => { });
   }, [user]);
 
   if (!isSupported) {
@@ -232,8 +232,8 @@ export function NotificationToggleRow({
             {permission === 'denied'
               ? 'Blocked in browser — change in Settings'
               : isEnabled
-              ? 'Enabled — you get real-time updates'
-              : 'Off — enable to track your complaints'}
+                ? 'Enabled — you get real-time updates'
+                : 'Off — enable to track your complaints'}
           </p>
         </div>
       </div>
@@ -241,14 +241,12 @@ export function NotificationToggleRow({
         <button
           onClick={handleToggle}
           disabled={isRegistering}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${
-            isEnabled ? 'bg-orange-500' : 'bg-gray-300'
-          } ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 ${isEnabled ? 'bg-orange-500' : 'bg-gray-300'
+            } ${isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-              isEnabled ? 'translate-x-6' : 'translate-x-1'
-            }`}
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
           />
         </button>
       )}
